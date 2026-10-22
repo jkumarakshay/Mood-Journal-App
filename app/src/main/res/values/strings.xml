@@ -1,4 +1,6 @@
 <resources>
+    <string name="backup_passphrase_length">Use a passphrase of 12 to 256 characters.</string>
+    <string name="backup_passphrase_mismatch">The passphrases don’t match. Please try again.</string>
     <string name="history_from_label">From: %1$s</string>
     <string name="history_to_label">To: %1$s</string>
     <string name="history_invalid_range">Choose an end date on or after the start date.</string>

@@ -1,4 +1,11 @@
 <resources>
+    <item name="backup_export" type="id" />
+    <item name="backup_restore" type="id" />
+    <item name="backup_choose_file" type="id" />
+    <item name="backup_password" type="id" />
+    <item name="backup_password_confirm" type="id" />
+    <item name="backup_password_error" type="id" />
+    <item name="backup_status" type="id" />
     <item name="history_tab" type="id" />
     <item name="range_week" type="id" />
     <item name="range_month" type="id" />

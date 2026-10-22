@@ -1,6 +1,6 @@
 # Daily Pause
 
-A quiet, offline Android journal for checking in with your mood and making space for reflection. Supports Android 8.0 (API 26) and newer.
+A quiet Android journal for checking in with your mood and making space for reflection. Journaling works offline, with optional encrypted Google Drive backups. Supports Android 8.0 (API 26) and newer.
 
 ## Features
 
@@ -11,6 +11,22 @@ A quiet, offline Android journal for checking in with your mood and making space
 - Browse your entries, read a full reflection, and permanently delete an entry after confirmation.
 - Protect My Journal with a six-digit PIN and optional enrolled strong biometrics.
 - Explore mood trends in a protected History tab with 1 week, 1 month, 3 months, 1 year, and custom date ranges.
+- Save passphrase-encrypted backups to Google Drive using Android's file picker, and restore missing entries without overwriting your journal.
+
+## Encrypted Google Drive backups
+
+1. Install Google Drive on the Android device and sign in to the Google account you want to use. Google Drive manages account authentication; Daily Pause does not receive your Google password or request broad Drive access.
+2. Unlock My Journal and tap **Back up to Google Drive**.
+3. Choose and confirm a separate backup passphrase of 12–256 characters. Keep it safe; your six-digit journal PIN cannot decrypt backups, and there is no passphrase recovery.
+4. In Android's system save dialog, choose **Google Drive**, an account/folder, and save the `.dpa` file. Other document providers are also supported if chosen explicitly. If Drive is absent from the locations list, open Drive and finish account setup first.
+
+Saved entries, timestamps, moods, and reflections are encrypted on the device before the save dialog opens. Backups exclude unfinished drafts, your PIN verifier, and device authentication settings. A backup uses AES-256-GCM with a random 128-bit salt, a random 96-bit nonce, a 128-bit authentication tag, and a key derived using PBKDF2-HMAC-SHA256 with 600,000 iterations. The backup header is authenticated. No passphrase or plaintext backup is written to disk; the temporary app cache contains only encrypted bytes and is removed after save/cancel/failure, with abandoned encrypted files expired after one hour.
+
+Daily Pause accesses only the file chosen through Android's Storage Access Framework. It needs no Internet/storage/account permissions, OAuth client ID, Google Cloud project, Google access token, or backend. The Drive document provider handles Google sign-in and network transport. Completing a local provider write does not prove cloud synchronization has finished: Drive may queue a save until connectivity returns. Check Drive before deleting a local journal.
+
+To restore, unlock My Journal, tap **Restore encrypted backup**, and choose the `.dpa` file in Drive. Returning from the picker locks the journal; unlock again, tap **Restore encrypted backup**, enter the backup passphrase, and confirm the entry count. Existing entries remain intact, exact duplicates are skipped, and the merge runs in a transaction. A wrong passphrase, modified backup, unsupported format, or failed restore adds no entries. The local PIN and draft remain unchanged. Files are limited to 20 MiB and 50,000 saved entries.
+
+Backup format version 1 is binary: 8-byte ASCII `DPAUSE01`, 16-byte random salt, 12-byte random nonce, then AES-GCM ciphertext including its 16-byte tag. The 36-byte header is the additional authenticated data. The encrypted payload uses big-endian integers: entry count (32-bit), then timestamp (64-bit epoch milliseconds), mood (8-bit), and three UTF-8 reflection strings, each prefixed with a 32-bit byte length. Local database IDs are omitted. Parsing enforces file, entry, mood, timestamp, and string bounds before any restore.
 
 ## Mood history
 
@@ -20,7 +36,7 @@ Ranges up to one calendar month show daily averages. Longer ranges up to three m
 
 Days without entries never become zero and never contribute to an average. Entirely missing days or aggregate buckets appear as gaps, and lines do not cross those gaps. An empty range displays "No check-ins in this range". Expand "View plotted averages" for exact values, date spans, check-in counts, and missing periods. The graph and mood scale also have screen-reader descriptions.
 
-Entries use a private SQLite database. The app requests no network or storage permissions, contains no analytics, and disables cloud backup and device-transfer backup. Uninstalling the app or clearing its data deletes the journal. This version has no export, account sync, or additional database encryption; protect the device with its system lock too.
+Entries use a private SQLite database. The app requests no network or storage permissions, contains no analytics, and disables automatic Android cloud backup and device-transfer backup. Uninstalling the app or clearing its data deletes the local journal. Manually saved encrypted `.dpa` files remain in the chosen provider and require the backup passphrase to restore. The local database and drafts have no additional encryption; protect the device with its system lock too. Drive backup is a manual action rather than background account synchronization.
 
 ## Journal lock
 
@@ -73,6 +89,6 @@ Use the existing checkout at `/workspace/Mood-Journal-App`; each cloud task is a
 ./gradlew testDebugUnitTest lintDebug
 ```
 
-The test suite exercises Android activities and SQLite: saving and reopening a reflection, preserving drafts across activity recreation, mood validation, mood-only entries, draft preservation across tabs, and confirmed deletion without affecting other entries. Security tests cover PIN setup and confirmation, incorrect PIN rejection, persistent retry limits, salt uniqueness, malformed verifier rejection, tab and background relocking, recreation, gated post-save navigation, secure-window flags, and simulated biometric callbacks. History tests cover daily/weekly/monthly averages, missing data, multiple same-day check-ins, leap years, inclusive custom ranges, local-date filtering across daylight-saving transitions, range selection, and protected navigation. Test results are written to `app/build/reports/tests/testDebugUnitTest/`; lint reports are in `app/build/reports/`.
+The test suite exercises Android activities and SQLite: saving and reopening a reflection, preserving drafts across activity recreation, mood validation, mood-only entries, draft preservation across tabs, and confirmed deletion without affecting other entries. Security tests cover PIN setup and confirmation, incorrect PIN rejection, persistent retry limits, salt uniqueness, malformed verifier rejection, tab and background relocking, recreation, gated post-save navigation, secure-window flags, and simulated biometric callbacks. History tests cover daily/weekly/monthly averages, missing data, multiple same-day check-ins, leap years, inclusive custom ranges, local-date filtering across daylight-saving transitions, range selection, and protected navigation. Backup tests cover authenticated encryption round trips, fresh randomness, wrong-passphrase and tamper rejection, size limits, file-picker save/cancel/failure, encrypted-only provider writes, pending-export recreation, passphrase validation, gated UI, explicit restore confirmation, duplicate skipping, and atomic rollback. Test results are written to `app/build/reports/tests/testDebugUnitTest/`; lint reports are in `app/build/reports/`.
 
-Before a public release, also test the APK on physical devices, including actual biometric success, failure, cancellation, and lockout; keyboard use; rotation; larger font sizes; and Android 15 edge-to-edge layouts. Robolectric tests use simulated biometric callbacks and do not replace hardware testing.
+Before a public release, also test the APK on physical devices, including actual Google Drive sign-in, folder selection, offline save/sync, reinstallation and encrypted restore, biometric success/failure/cancellation/lockout, keyboard use, rotation, larger font sizes, and Android 15 edge-to-edge layouts. Robolectric uses a simulated document provider and biometric callbacks; it does not establish real Google sign-in or completed cloud uploads.

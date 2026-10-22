@@ -46,6 +46,32 @@ final class JournalStore extends SQLiteOpenHelper {
 
     void delete(long id) { getWritableDatabase().delete("entries", "id = ?", new String[]{Long.toString(id)}); }
 
+    List<BackupArchive.Entry> backupEntries() {
+        List<BackupArchive.Entry> result = new ArrayList<>();
+        for (Entry entry : all()) result.add(new BackupArchive.Entry(entry.createdAt(), entry.mood(), entry.event(), entry.thoughts(), entry.needs()));
+        return result;
+    }
+
+    /** Merge without replacing local entries, IDs, drafts, or the journal lock. */
+    int restoreEntries(List<BackupArchive.Entry> restored) {
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            java.util.Set<BackupArchive.Entry> known = new java.util.HashSet<>(backupEntries());
+            int added = 0;
+            for (BackupArchive.Entry entry : restored) {
+                if (!known.add(entry)) continue;
+                ContentValues values = new ContentValues();
+                values.put("created_at", entry.createdAt()); values.put("mood", entry.mood());
+                values.put("event", entry.event()); values.put("thoughts", entry.thoughts()); values.put("needs", entry.needs());
+                db.insertOrThrow("entries", null, values);
+                added++;
+            }
+            db.setTransactionSuccessful();
+            return added;
+        } finally { db.endTransaction(); }
+    }
+
     List<MoodHistory.Reading> moodsBetween(java.time.LocalDate start, java.time.LocalDate end, java.time.ZoneId zone) {
         if (end.isBefore(start)) throw new IllegalArgumentException("Invalid date range");
         long from = start.atStartOfDay(zone).toInstant().toEpochMilli();

@@ -52,6 +52,7 @@ public final class MainActivity extends FragmentActivity {
     private JournalGate gate;
     private AlertDialog privateDialog;
     private HistoryScreen history;
+    private BackupController backup;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -66,6 +67,8 @@ public final class MainActivity extends FragmentActivity {
         });
         history = new HistoryScreen(this, store, state, this::showHistory, this::showPrivateDialog,
                 () -> currentTab == HISTORY && journalUnlocked);
+        backup = new BackupController(this, state, this::showPrivateDialog,
+                () -> currentTab == JOURNAL && journalUnlocked, this::showJournal);
         mood = draft.getInt("mood", 0);
         promptIndex = draft.getInt("prompt", 0) % PROMPTS.length;
         int restoredTab = state == null ? CHECK_IN : state.getInt("tab", state.getBoolean("journal") ? JOURNAL : CHECK_IN);
@@ -122,6 +125,7 @@ public final class MainActivity extends FragmentActivity {
         hideKeyboard();
         journalUnlocked = false;
         gate.lock();
+        backup.onPause();
         if (tab == CHECK_IN) showCheckIn();
         else if (tab == JOURNAL) showJournal();
         else showHistory();
@@ -195,7 +199,7 @@ public final class MainActivity extends FragmentActivity {
         save.setId(R.id.save_entry);
         save.setOnClickListener(v -> saveEntry());
         add(page, save, 20);
-        TextView privacy = text("Just for you. Entries stay on this device.\nYour unfinished writing is saved as a draft.", 12, MUTED, false);
+        TextView privacy = text("Entries stay on this device unless you choose an encrypted backup.\nYour unfinished writing is saved as a draft.", 12, MUTED, false);
         privacy.setGravity(Gravity.CENTER);
         add(page, privacy, 16);
     }
@@ -256,6 +260,7 @@ public final class MainActivity extends FragmentActivity {
         add(note, text(entries.isEmpty() ? "A mood is enough. A few words are enough.\nMake room for whatever today brings."
                 : "There’s no right way to feel. Look back with curiosity and kindness.", 14, MUTED, false), 8);
         add(page, note, 24);
+        backup.addTo(page, entries.size());
         if (entries.isEmpty()) {
             Button first = button("Make your first check-in", true);
             first.setOnClickListener(v -> showCheckIn());
@@ -276,7 +281,7 @@ public final class MainActivity extends FragmentActivity {
             add(entryCard, open, 14);
             add(page, entryCard, 16);
         }
-        add(page, text("Stored only on this device. Uninstalling the app or clearing its data removes your journal.", 12, MUTED, false), 24);
+        add(page, text("Uninstalling the app or clearing its data removes local entries. Keep an encrypted backup and its passphrase to restore them later.", 12, MUTED, false), 24);
     }
 
     private void showEntry(JournalStore.Entry entry) {
@@ -334,6 +339,7 @@ public final class MainActivity extends FragmentActivity {
 
     @Override protected void onPause() {
         saveDraft();
+        backup.onPause();
         journalUnlocked = false;
         gate.lock();
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
@@ -348,9 +354,10 @@ public final class MainActivity extends FragmentActivity {
         saveDraft();
         state.putInt("tab", currentTab);
         history.saveState(state);
+        backup.saveState(state);
         super.onSaveInstanceState(state);
     }
-    @Override protected void onDestroy() { gate.close(); store.close(); super.onDestroy(); }
+    @Override protected void onDestroy() { gate.close(); backup.close(); store.close(); super.onDestroy(); }
 
     private void hideKeyboard() {
         View focused = getCurrentFocus();
