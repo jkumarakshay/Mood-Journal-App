@@ -97,7 +97,7 @@ final class JournalScreen {
                 public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
                     String next = values.get(position);
                     if (java.util.Objects.equals(category, next) || !authorized.getAsBoolean()) return;
-                    category = next; refresh.run();
+                    category = next; outsideOnly = false; refresh.run();
                 }
             });
             add(page, filter, 4);

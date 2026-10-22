@@ -103,6 +103,13 @@ public class HeapScreenTest {
             category.setSelection(2); idle();
             assertTrue(text(c.get(), "Work entry")); assertTrue(text(c.get(), "Home entry"));
             assertFalse(text(c.get(), "Uncategorized entry")); assertFalse(text(c.get(), "Loose entry"));
+            for (JournalStore.Entry entry : store.all()) {
+                if (entry.heapId() == null || entry.event().equals("Uncategorized entry")) continue;
+                JournalHeap heap = store.heaps().stream().filter(h -> h.id().equals(entry.heapId())).findFirst().get();
+                View filteredCard = findTag(c.get().getWindow().getDecorView(), entry.id());
+                assertEquals(heap.background(), ((GradientDrawable) filteredCard.getBackground()).getColor().getDefaultColor());
+                assertTrue(text(filteredCard, "Heap: " + heap.name()));
+            }
             ((Spinner) c.get().findViewById(R.id.journal_category)).setSelection(1); idle();
             assertFalse(text(c.get(), "Work entry")); assertFalse(text(c.get(), "Home entry"));
             assertTrue(text(c.get(), "Uncategorized entry")); assertTrue(text(c.get(), "Loose entry"));
@@ -110,6 +117,29 @@ public class HeapScreenTest {
             assertTrue(text(c.get(), "Work entry")); assertTrue(text(c.get(), "Loose entry"));
             c.get().findViewById(R.id.journal_location).performClick();
             assertFalse(text(c.get(), "Work entry")); assertTrue(text(c.get(), "Loose entry"));
+        }
+    }
+
+    @Test public void selectingCategoryLeavesOutsideOnlyViewAndSearchesAllMatchingHeaps() {
+        try (JournalStore store = new JournalStore(context)) {
+            JournalHeap work = store.addHeap("Work", "Life", JournalHeap.COLORS[1]);
+            JournalHeap home = store.addHeap("Home", "Life", JournalHeap.COLORS[2]);
+            JournalHeap exercise = store.addHeap("Exercise", "Health", JournalHeap.COLORS[3]);
+            store.add(3, "Work reflection", "", "", work.id());
+            store.add(4, "Home reflection", "", "", home.id());
+            store.add(5, "Exercise reflection", "", "", exercise.id());
+            store.add(2, "Loose reflection", "", "");
+        }
+        try (ActivityController<MainActivity> c = unlocked()) {
+            c.get().findViewById(R.id.journal_location).performClick();
+            assertTrue(text(c.get(), "Loose reflection")); assertFalse(text(c.get(), "Work reflection"));
+            Spinner filter = c.get().findViewById(R.id.journal_category);
+            int life = -1;
+            for (int i = 0; i < filter.getCount(); i++) if (filter.getItemAtPosition(i).equals("Category: Life")) life = i;
+            assertTrue(life >= 0); filter.setSelection(life); idle();
+            assertTrue(text(c.get(), "Work reflection")); assertTrue(text(c.get(), "Home reflection"));
+            assertFalse(text(c.get(), "Exercise reflection")); assertFalse(text(c.get(), "Loose reflection"));
+            assertEquals("Show journals outside Heaps", ((Button) c.get().findViewById(R.id.journal_location)).getText().toString());
         }
     }
 
