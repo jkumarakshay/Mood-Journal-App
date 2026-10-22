@@ -21,6 +21,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import androidx.fragment.app.FragmentActivity;
@@ -56,6 +57,8 @@ public final class MainActivity extends FragmentActivity {
     private HistoryScreen history;
     private BackupController backup;
     private JournalScreen journals;
+    private boolean pendingMoment, createHeapForMoment;
+    private int momentGeneration;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -75,8 +78,11 @@ public final class MainActivity extends FragmentActivity {
         journals = new JournalScreen(this, store, state, () -> currentTab == JOURNAL && journalUnlocked,
                 this::showPrivateDialog, this::showEntry, this::showJournal);
         mood = draft.getInt("mood", 0);
+        pendingMoment = state != null && state.getBoolean("pending_moment") && mood != 0;
+        createHeapForMoment = pendingMoment && state.getBoolean("create_heap_for_moment");
         promptIndex = draft.getInt("prompt", 0) % PROMPTS.length;
         int restoredTab = state == null ? CHECK_IN : state.getInt("tab", state.getBoolean("journal") ? JOURNAL : CHECK_IN);
+        if (restoredTab != JOURNAL) cancelPendingMoment();
         if (restoredTab == HISTORY) showHistory();
         else if (restoredTab == JOURNAL) showJournal();
         else showCheckIn();
@@ -127,6 +133,8 @@ public final class MainActivity extends FragmentActivity {
     private void openTab(int tab) {
         if (currentTab == tab) return;
         saveDraft();
+        cancelPendingMoment();
+        if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
         hideKeyboard();
         journalUnlocked = false;
         gate.lock();
@@ -238,24 +246,116 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void saveEntry() {
+        if (currentTab != CHECK_IN || event == null) return;
         if (mood == 0) {
             Toast.makeText(this, "Choose the mood that feels closest first.", Toast.LENGTH_LONG).show();
             moodButtons[0].requestFocus();
             return;
         }
+        saveDraft();
+        hideKeyboard();
+        final int token = ++momentGeneration;
+        showPrivateDialog(new AlertDialog.Builder(this).setTitle(R.string.moment_heap_prompt)
+                .setMessage(R.string.moment_heap_message)
+                .setPositiveButton(R.string.moment_choose_heap, (d, w) -> requestMomentHeap(token, false))
+                .setNeutralButton(R.string.moment_create_heap, (d, w) -> requestMomentHeap(token, true))
+                .setNegativeButton(R.string.moment_save_outside, (d, w) -> {
+                    if (publicMomentActive(token)) saveMoment(null, token);
+                }).setOnCancelListener(d -> { if (publicMomentActive(token)) momentGeneration++; }));
+    }
+
+    private boolean publicMomentActive(int token) {
+        return token == momentGeneration && !pendingMoment && currentTab == CHECK_IN && mood != 0
+                && getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED);
+    }
+
+    private boolean privateMomentActive(int token) {
+        return token == momentGeneration && pendingMoment && currentTab == JOURNAL && journalUnlocked
+                && getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED);
+    }
+
+    private void requestMomentHeap(int token, boolean create) {
+        if (!publicMomentActive(token)) return;
+        pendingMoment = true;
+        createHeapForMoment = create;
+        journalUnlocked = false;
+        gate.lock();
+        showJournal();
+    }
+
+    private void showMomentDestinations() {
+        final int token = momentGeneration;
+        if (!privateMomentActive(token)) return;
+        if (createHeapForMoment) {
+            journals.createHeap(heap -> {
+                if (!privateMomentActive(token)) return;
+                createHeapForMoment = false;
+                saveMoment(heap.id(), token);
+            }, () -> {
+                if (!privateMomentActive(token)) return;
+                createHeapForMoment = false;
+                showMomentDestinations();
+            });
+            return;
+        }
+        List<JournalHeap> heaps;
+        try { heaps = store.heaps(); }
+        catch (android.database.SQLException e) {
+            showPrivateDialog(new AlertDialog.Builder(this).setTitle(R.string.moment_heap_prompt)
+                    .setMessage(R.string.moment_heaps_unavailable)
+                    .setPositiveButton(R.string.moment_back_to_draft, (d, w) -> returnToMomentDraft(token)));
+            return;
+        }
+        List<String> choices = new ArrayList<>();
+        for (JournalHeap heap : heaps) choices.add(heap.name() + (heap.category().isEmpty() ? "" : " · " + heap.category()));
+        choices.add(getString(R.string.moment_create_heap));
+        showPrivateDialog(new AlertDialog.Builder(this).setTitle(R.string.moment_heap_prompt)
+                .setItems(choices.toArray(new String[0]), (d, position) -> {
+                    if (!privateMomentActive(token)) return;
+                    if (position == heaps.size()) {
+                        createHeapForMoment = true;
+                        showMomentDestinations();
+                    } else saveMoment(heaps.get(position).id(), token);
+                })
+                .setNegativeButton(R.string.moment_save_outside, (d, w) -> {
+                    if (privateMomentActive(token)) saveMoment(null, token);
+                })
+                .setNeutralButton(R.string.moment_cancel, (d, w) -> returnToMomentDraft(token))
+                .setOnCancelListener(d -> returnToMomentDraft(token)));
+    }
+
+    private void returnToMomentDraft(int token) {
+        if (!privateMomentActive(token)) return;
+        cancelPendingMoment();
+        showCheckIn();
+    }
+
+    private void cancelPendingMoment() {
+        momentGeneration++;
+        pendingMoment = false;
+        createHeapForMoment = false;
+    }
+
+    private void saveMoment(String heapId, int token) {
+        if (!publicMomentActive(token) && !privateMomentActive(token)) return;
+        int savedMood = draft.getInt("mood", 0);
+        if (savedMood < 1 || savedMood > 5) return;
         try {
-            store.add(mood, event.getText().toString(), thoughts.getText().toString(), needs.getText().toString());
+            store.add(savedMood, draft.getString("event", ""), draft.getString("thoughts", ""), draft.getString("needs", ""), heapId);
+            cancelPendingMoment();
             draft.edit().clear().apply();
             mood = 0;
             event = thoughts = needs = null;
             hideKeyboard();
+            journals.openDestination(heapId);
             showJournal();
             Toast.makeText(this, "A moment for yourself, saved.", Toast.LENGTH_SHORT).show();
         } catch (android.database.SQLException e) {
-            saveDraft();
-            new AlertDialog.Builder(this).setTitle("Your entry couldn’t be saved")
+            showPrivateDialog(new AlertDialog.Builder(this).setTitle("Your entry couldn’t be saved")
                     .setMessage("Your draft is still here. Check that your device has free storage, then try again.")
-                    .setPositiveButton("Okay", null).show();
+                    .setPositiveButton("Okay", (d, w) -> {
+                        if (privateMomentActive(token)) returnToMomentDraft(token);
+                    }));
         }
     }
 
@@ -263,6 +363,13 @@ public final class MainActivity extends FragmentActivity {
         frame(JOURNAL);
         if (!journalUnlocked) {
             gate.show(page);
+            if (pendingMoment) {
+                add(page, text(getString(R.string.moment_unlock_notice), 14, MUTED, false), 16);
+                Button back = button(getString(R.string.moment_back_to_draft), false);
+                back.setId(R.id.cancel_moment_save);
+                back.setOnClickListener(v -> { cancelPendingMoment(); showCheckIn(); });
+                add(page, back, 12);
+            }
             return;
         }
         add(page, text("YOUR WORDS, YOUR JOURNEY", 11, PURPLE, true), 0);
@@ -288,6 +395,7 @@ public final class MainActivity extends FragmentActivity {
             add(page, text("Your journal couldn’t be opened. Try reopening the app. Your entries have not been removed.", 16, INK, false), 24);
         }
         add(page, text("Uninstalling the app or clearing its data removes local entries. Keep an encrypted backup and its passphrase to restore them later.", 12, MUTED, false), 24);
+        if (pendingMoment) showMomentDestinations();
     }
 
     private void showEntry(JournalStore.Entry entry) {
@@ -346,6 +454,7 @@ public final class MainActivity extends FragmentActivity {
 
     @Override protected void onPause() {
         saveDraft();
+        momentGeneration++;
         backup.onPause();
         journalUnlocked = false;
         gate.lock();
@@ -360,6 +469,8 @@ public final class MainActivity extends FragmentActivity {
     @Override protected void onSaveInstanceState(Bundle state) {
         saveDraft();
         state.putInt("tab", currentTab);
+        state.putBoolean("pending_moment", pendingMoment);
+        state.putBoolean("create_heap_for_moment", createHeapForMoment);
         history.saveState(state);
         journals.saveState(state);
         backup.saveState(state);

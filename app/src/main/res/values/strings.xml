@@ -1,4 +1,13 @@
 <resources>
+    <string name="moment_heap_prompt">Save in a Heap?</string>
+    <string name="moment_heap_message">Choose a Heap for this journal, or select No to save outside Heaps. Unlock My Journal to view your Heaps or create a new one.</string>
+    <string name="moment_choose_heap">Choose Heap</string>
+    <string name="moment_create_heap">Create New</string>
+    <string name="moment_save_outside">No</string>
+    <string name="moment_cancel">Cancel</string>
+    <string name="moment_unlock_notice">Unlock to choose a Heap for your moment. Your writing is still saved as a draft.</string>
+    <string name="moment_back_to_draft">Back to my draft</string>
+    <string name="moment_heaps_unavailable">Your Heaps couldn’t be opened. Your moment is still saved as a draft. Please try again.</string>
     <string name="mood_response_hug_title">🤗  %1$s</string>
     <string name="mood_response_high_five_title">🙌  %1$s</string>
     <string name="mood_response_low">Some days, just existing is a win. Take the win. Stretch for a few minutes, take a short walk, or lie down and stare at the wall for a bit. If it helps, reach out to someone you trust.\n\nFeel like leaving a few words here? Future you can look back and see what helped you get through days like this.</string>

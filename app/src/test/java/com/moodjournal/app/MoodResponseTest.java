@@ -69,7 +69,7 @@ public class MoodResponseTest {
             assertTrue(a.findViewById(R.id.mood_4).isSelected());
             assertEquals("A thought I started before choosing a mood", reflection.getText().toString());
             assertTrue(store.all().isEmpty());
-            a.findViewById(R.id.save_entry).performClick();
+            JournalTest.saveOutsideHeaps(a);
             assertEquals(1, store.all().size());
             assertEquals(4, store.all().get(0).mood());
             assertNotNull(a.findViewById(R.id.unlock_pin));
@@ -81,7 +81,7 @@ public class MoodResponseTest {
              JournalStore store = new JournalStore(context)) {
             JournalTest.chooseMood(c.get(), R.id.mood_1);
             assertTrue(store.all().isEmpty());
-            c.get().findViewById(R.id.save_entry).performClick();
+            JournalTest.saveOutsideHeaps(c.get());
             assertEquals(1, store.all().size());
             assertEquals(1, store.all().get(0).mood());
             assertEquals("", store.all().get(0).event());

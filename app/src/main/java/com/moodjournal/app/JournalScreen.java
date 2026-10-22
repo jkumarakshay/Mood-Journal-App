@@ -59,6 +59,10 @@ final class JournalScreen {
         state.putBoolean("journal_outside", outsideOnly);
     }
 
+    void openDestination(String heapId) {
+        activeHeap = heapId; category = null; outsideOnly = false;
+    }
+
     void show(LinearLayout page, List<JournalStore.Entry> entries) {
         if (!authorized.getAsBoolean()) return;
         List<JournalHeap> heaps = store.heaps();
@@ -161,14 +165,20 @@ final class JournalScreen {
     }
 
     private void explainHeap() {
-        if (!authorized.getAsBoolean()) return;
-        if (activity.getSharedPreferences("heap_notices", Context.MODE_PRIVATE).getBoolean("created", false)) { newHeap(); return; }
-        showDialog.accept(new AlertDialog.Builder(activity).setTitle("A little space for each part of life")
-                .setMessage("A Heap is a folder for journals about a particular topic, concern, or facet of your life—such as work, relationships, or personal growth.\n\nCreating Heaps helps compartmentalize your thoughts, which can help clear your mind further. You can also keep journals outside all Heaps.\n\nGive your Heap a name. A category and color profile are optional.")
-                .setNegativeButton("Maybe later", null).setPositiveButton("Create a Heap", (d, w) -> { if (authorized.getAsBoolean()) newHeap(); }).create());
+        createHeap(heap -> { openDestination(heap.id()); refresh.run(); }, () -> {});
     }
 
-    private void newHeap() {
+    void createHeap(Consumer<JournalHeap> saved, Runnable cancelled) {
+        if (!authorized.getAsBoolean()) return;
+        if (activity.getSharedPreferences("heap_notices", Context.MODE_PRIVATE).getBoolean("created", false)) { newHeap(saved, cancelled); return; }
+        showDialog.accept(new AlertDialog.Builder(activity).setTitle("A little space for each part of life")
+                .setMessage("A Heap is a folder for journals about a particular topic, concern, or facet of your life—such as work, relationships, or personal growth.\n\nCreating Heaps helps compartmentalize your thoughts, which can help clear your mind further. You can also keep journals outside all Heaps.\n\nGive your Heap a name. A category and color profile are optional.")
+                .setNegativeButton("Maybe later", (d, w) -> cancelled.run())
+                .setOnCancelListener(d -> cancelled.run())
+                .setPositiveButton("Create a Heap", (d, w) -> { if (authorized.getAsBoolean()) newHeap(saved, cancelled); }).create());
+    }
+
+    private void newHeap(Consumer<JournalHeap> saved, Runnable cancelled) {
         LinearLayout form = form();
         EditText name = field(form, "Heap name (required)", R.id.heap_name, "", 100, false);
         EditText categoryField = field(form, "Category (optional)", R.id.heap_category, "", 60, false);
@@ -177,7 +187,8 @@ final class JournalScreen {
         add(form, color, 4);
         TextView error = error(form);
         AlertDialog dialog = new AlertDialog.Builder(activity).setTitle("New Heap").setView(scroll(form))
-                .setNegativeButton("Cancel", null).setPositiveButton("Create Heap", null).create();
+                .setNegativeButton("Cancel", (d, w) -> cancelled.run())
+                .setOnCancelListener(d -> cancelled.run()).setPositiveButton("Create Heap", null).create();
         showDialog.accept(dialog);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             if (!authorized.getAsBoolean()) { dialog.dismiss(); return; }
@@ -186,8 +197,7 @@ final class JournalScreen {
                 JournalHeap heap = store.addHeap(name.getText().toString(), categoryField.getText().toString(),
                         choice == 0 ? null : JournalHeap.COLORS[choice]);
                 activity.getSharedPreferences("heap_notices", Context.MODE_PRIVATE).edit().putBoolean("created", true).apply();
-                activeHeap = heap.id();
-                dialog.dismiss(); refresh.run();
+                dialog.dismiss(); saved.accept(heap);
             } catch (IllegalArgumentException e) { error.setText(e.getMessage()); name.requestFocus(); }
             catch (android.database.SQLException e) { error.setText("Couldn’t save this Heap. Check device storage and try again."); }
         });

@@ -1,4 +1,5 @@
 <resources>
+    <item name="cancel_moment_save" type="id" />
     <item name="backup_export" type="id" />
     <item name="backup_restore" type="id" />
     <item name="backup_choose_file" type="id" />

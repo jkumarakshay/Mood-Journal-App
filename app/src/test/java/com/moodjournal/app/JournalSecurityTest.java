@@ -107,7 +107,7 @@ public class JournalSecurityTest {
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity a = c.get();
             JournalTest.chooseMood(a, R.id.mood_3);
-            a.findViewById(R.id.save_entry).performClick();
+            JournalTest.saveOutsideHeaps(a);
             assertNotNull(a.findViewById(R.id.confirm_pin));
             assertFalse(containsText(a.getWindow().getDecorView(), "Private journal words"));
             assertTrue((a.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);

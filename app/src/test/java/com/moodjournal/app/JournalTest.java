@@ -36,7 +36,7 @@ public class JournalTest {
             ((EditText) activity.findViewById(R.id.entry_event)).setText("  A walk with a friend 🌿  ");
             ((EditText) activity.findViewById(R.id.entry_thoughts)).setText("I felt listened to.");
             ((EditText) activity.findViewById(R.id.entry_needs)).setText("Make time to connect again.");
-            activity.findViewById(R.id.save_entry).performClick();
+            saveOutsideHeaps(activity);
             assertNull(activity.findViewById(R.id.entry_event));
         }
         try (JournalStore reopened = new JournalStore(RuntimeEnvironment.getApplication())) {
@@ -71,7 +71,7 @@ public class JournalTest {
             controller.get().findViewById(R.id.save_entry).performClick();
             assertTrue(db.all().isEmpty());
             chooseMood(controller.get(), R.id.mood_3);
-            controller.get().findViewById(R.id.save_entry).performClick();
+            saveOutsideHeaps(controller.get());
             assertEquals(1, db.all().size());
             assertEquals("", db.all().get(0).event());
         }
@@ -140,6 +140,14 @@ public class JournalTest {
         if (confirm != null) confirm.setText("642081");
         activity.findViewById(R.id.unlock_submit).performClick();
         await(() -> activity.findViewById(R.id.unlock_submit) == null);
+    }
+
+    static void saveOutsideHeaps(MainActivity activity) {
+        activity.findViewById(R.id.save_entry).performClick();
+        AlertDialog prompt = ShadowAlertDialog.getLatestAlertDialog();
+        assertEquals("Save in a Heap?", Shadows.shadowOf(prompt).getTitle().toString());
+        prompt.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
     }
 
     static void chooseMood(MainActivity activity, int moodId) {
