@@ -37,4 +37,17 @@
     <item name="mood_3" type="id" />
     <item name="mood_4" type="id" />
     <item name="mood_5" type="id" />
+    <item name="journal_add" type="id" />
+    <item name="heap_back" type="id" />
+    <item name="journal_category" type="id" />
+    <item name="journal_location" type="id" />
+    <item name="heap_name" type="id" />
+    <item name="heap_category" type="id" />
+    <item name="heap_color" type="id" />
+    <item name="heap_form_error" type="id" />
+    <item name="journal_entry_mood" type="id" />
+    <item name="journal_entry_event" type="id" />
+    <item name="journal_entry_thoughts" type="id" />
+    <item name="journal_entry_needs" type="id" />
+    <item name="entry_heap" type="id" />
 </resources>

@@ -93,7 +93,13 @@ public class BackupControllerTest {
 
     @Test public void createDocumentSavesOnlyEncryptedBytesAndReturnsToLockedJournal() throws Exception {
         List<BackupArchive.Entry> expected;
-        try (JournalStore store = new JournalStore(context)) { expected = store.backupEntries(); }
+        List<JournalHeap> expectedHeaps;
+        try (JournalStore store = new JournalStore(context)) {
+            JournalHeap heap = store.addHeap("Private work concerns", "Career", JournalHeap.COLORS[2]);
+            store.addHeap("An empty Heap", "", null);
+            store.add(3, "A journal inside a Heap", "", "", heap.id());
+            expected = store.backupEntries(); expectedHeaps = store.heaps();
+        }
         try (ActivityController<MainActivity> c = unlocked()) {
             MainActivity a = c.get();
             startExport(a);
@@ -107,7 +113,9 @@ public class BackupControllerTest {
             JournalTest.await(() -> status().startsWith("Encrypted backup saved"));
             byte[] saved = Files.readAllBytes(providerFile.toPath());
             assertEquals(expected, BackupArchive.decrypt(saved, PASSPHRASE.toCharArray()));
+            assertEquals(expectedHeaps, BackupArchive.decryptSnapshot(saved, PASSPHRASE.toCharArray()).heaps());
             assertFalse(new String(saved, java.nio.charset.StandardCharsets.ISO_8859_1).contains("Only encrypted text"));
+            assertFalse(new String(saved, java.nio.charset.StandardCharsets.ISO_8859_1).contains("Private work concerns"));
             assertEquals(0, encryptedCacheFiles());
             JournalTest.unlockJournal(a);
             assertTrue(((TextView) a.findViewById(R.id.backup_status)).getText().toString().contains("syncing when online"));

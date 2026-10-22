@@ -29,9 +29,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -56,7 +54,7 @@ final class BackupController {
     private boolean destroyed;
     private String pendingExportName;
     private Uri restoreUri;
-    private List<BackupArchive.Entry> pendingRestore;
+    private BackupArchive.Snapshot pendingRestore;
     private EditText passwordField, confirmField;
 
     BackupController(FragmentActivity activity, Bundle state, Consumer<AlertDialog> showDialog,
@@ -88,7 +86,7 @@ final class BackupController {
         TextView heading = label("Your encrypted backup", 20);
         heading.setPadding(0, dp(24), 0, dp(8));
         page.addView(heading);
-        page.addView(label("Choose Google Drive in the system save dialog. Install Drive and sign in there if needed. Only saved entries are backed up; drafts and your lock PIN stay on this device.", 14));
+        page.addView(label("Choose Google Drive in the system save dialog. Install Drive and sign in there if needed. Saved entries and Heaps are backed up; drafts and your lock PIN stay on this device.", 14));
         Button export = button("Back up to Google Drive", R.id.backup_export);
         export.setEnabled(entryCount > 0 && stage == Stage.IDLE && pendingExportName == null);
         export.setOnClickListener(v -> {
@@ -169,7 +167,7 @@ final class BackupController {
         worker.execute(() -> {
             File file = null;
             try (JournalStore store = new JournalStore(context)) {
-                byte[] encrypted = BackupArchive.encrypt(store.backupEntries(), password);
+                byte[] encrypted = BackupArchive.encrypt(store.backupSnapshot(), password);
                 file = new File(context.getCacheDir(), "daily-pause-" + UUID.randomUUID() + ".dpa");
                 if (!file.createNewFile()) throw new IOException("Could not create encrypted cache");
                 try (OutputStream out = new FileOutputStream(file)) { out.write(encrypted); }
@@ -228,9 +226,9 @@ final class BackupController {
         worker.execute(() -> {
             try (InputStream input = context.getContentResolver().openInputStream(selected)) {
                 if (input == null) throw new IOException("No input stream");
-                List<BackupArchive.Entry> entries = BackupArchive.decrypt(BackupArchive.readBounded(input), password);
+                BackupArchive.Snapshot entries = BackupArchive.decryptSnapshot(BackupArchive.readBounded(input), password);
                 main.post(() -> {
-                    if (generation != token || destroyed || !authorized.getAsBoolean()) { entries.clear(); return; }
+                    if (generation != token || destroyed || !authorized.getAsBoolean()) return;
                     stage = Stage.IDLE;
                     pendingRestore = entries;
                     confirmRestore(token);
@@ -242,27 +240,26 @@ final class BackupController {
     }
 
     private void confirmRestore(int token) {
-        AlertDialog dialog = new AlertDialog.Builder(activity).setTitle("Restore " + pendingRestore.size() + " entries?")
-                .setMessage("Missing entries will be added. Existing entries, drafts, and your PIN stay unchanged. Exact duplicates will be skipped.")
+        AlertDialog dialog = new AlertDialog.Builder(activity).setTitle("Restore " + pendingRestore.entries().size() + " entries?")
+                .setMessage("Missing entries and Heaps will be added. Existing entries, Heaps, drafts, and your PIN stay unchanged. Exact duplicates will be skipped.")
                 .setNegativeButton("Cancel", null).setPositiveButton("Restore entries", (d, w) -> {
                     if (generation != token || !authorized.getAsBoolean() || pendingRestore == null) return;
-                    List<BackupArchive.Entry> approved = new ArrayList<>(pendingRestore);
-                    pendingRestore.clear(); pendingRestore = null;
+                    BackupArchive.Snapshot approved = pendingRestore;
+                    pendingRestore = null;
                     stage = Stage.RESTORING;
                     refresh.run();
                     worker.execute(() -> {
                         String result;
                         try (JournalStore store = new JournalStore(context)) {
-                            int added = store.restoreEntries(approved);
+                            int added = store.restoreSnapshot(approved);
                             result = "Restore complete: " + added + " entries added. Existing duplicates were skipped.";
                         } catch (Exception e) { result = "Restore failed. No entries were added. Check device storage and try again."; }
-                        finally { approved.clear(); }
                         String message = result;
                         main.post(() -> { restoreUri = null; finish(message); });
                     });
                 }).create();
         dialog.setOnDismissListener(d -> {
-            if (pendingRestore != null) { pendingRestore.clear(); pendingRestore = null; }
+            pendingRestore = null;
             if (stage == Stage.IDLE) refreshIfAuthorized();
         });
         showDialog.accept(dialog);
@@ -272,7 +269,7 @@ final class BackupController {
         generation++;
         if (passwordField != null) passwordField.setText("");
         if (confirmField != null) confirmField.setText("");
-        if (pendingRestore != null) { pendingRestore.clear(); pendingRestore = null; }
+        pendingRestore = null;
         if (stage == Stage.ENCRYPTING || stage == Stage.DECRYPTING) stage = Stage.IDLE;
     }
 

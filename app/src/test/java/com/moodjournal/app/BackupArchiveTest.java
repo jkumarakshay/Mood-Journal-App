@@ -73,4 +73,26 @@ public class BackupArchiveTest {
         assertThrows(IOException.class, () -> BackupArchive.encrypt(Collections.singletonList(new BackupArchive.Entry(1, 0, "", "", "")), PASSWORD));
         assertThrows(IOException.class, () -> BackupArchive.encrypt(Collections.singletonList(new BackupArchive.Entry(1, 1, null, "", "")), PASSWORD));
     }
+
+    @Test public void versionTwoEncryptsHeapMetadataAndVersionOneStillRestores() throws Exception {
+        JournalHeap heap = new JournalHeap(java.util.UUID.randomUUID().toString(), "Private work concerns", "Career", JournalHeap.COLORS[3]);
+        BackupArchive.Snapshot snapshot = new BackupArchive.Snapshot(List.of(heap), List.of(
+                new BackupArchive.Entry(1234, 3, "Thoughts", "", "", heap.id()), entries.get(0)));
+        byte[] archive = BackupArchive.encrypt(snapshot, PASSWORD);
+        assertEquals("DPAUSE02", new String(archive, 0, 8, StandardCharsets.US_ASCII));
+        assertEquals(snapshot, BackupArchive.decryptSnapshot(archive, PASSWORD));
+        assertFalse(new String(archive, StandardCharsets.ISO_8859_1).contains(heap.name()));
+        BackupArchive.Snapshot legacy = BackupArchive.decryptSnapshot(BackupArchive.encrypt(entries, PASSWORD), PASSWORD);
+        assertTrue(legacy.heaps().isEmpty()); assertEquals(entries, legacy.entries());
+    }
+
+    @Test public void versionTwoRejectsMissingAndDuplicateHeapsAndDetectsTampering() throws Exception {
+        JournalHeap heap = new JournalHeap(java.util.UUID.randomUUID().toString(), "Work", "", null);
+        BackupArchive.Entry entry = new BackupArchive.Entry(1234, 3, "", "", "", heap.id());
+        assertThrows(IOException.class, () -> BackupArchive.encrypt(new BackupArchive.Snapshot(List.of(), List.of(entry)), PASSWORD));
+        assertThrows(IOException.class, () -> BackupArchive.encrypt(new BackupArchive.Snapshot(List.of(heap, heap), List.of()), PASSWORD));
+        byte[] archive = BackupArchive.encrypt(new BackupArchive.Snapshot(List.of(heap), List.of(entry)), PASSWORD);
+        archive[archive.length - 1] ^= 1;
+        assertThrows(AEADBadTagException.class, () -> BackupArchive.decryptSnapshot(archive, PASSWORD));
+    }
 }

@@ -10,11 +10,21 @@ A quiet Android journal for checking in with your mood and making space for refl
 - Save a mood without writing when that is all you have energy for.
 - Return to an unfinished draft after leaving the app.
 - Browse your entries, read a full reflection, and permanently delete an entry after confirmation.
+- Organize journals in named Heaps with optional categories and color profiles, or keep entries outside all Heaps.
+- Use the **+** menu in My Journal to create a journal or Heap; filter journals across Heaps by category.
 - Protect My Journal with a six-digit PIN and optional enrolled strong biometrics.
 - Explore mood trends in a protected History tab with 1 week, 1 month, 3 months, 1 year, and custom date ranges.
 - Save passphrase-encrypted backups to Google Drive using Android's file picker, and restore missing entries without overwriting your journal.
 
 Selecting a mood opens a supportive pop-up tailored to Low, Down, Okay, Good, or Great. Each message invites a few words for future reflection: remembering good days or noticing what helped through hard ones. **Let’s journal** focuses the reflection field without changing existing writing; **Maybe later** dismisses the message. Selection keeps a draft; **Save this moment** still records the check-in. Restoring a draft does not replay the pop-up, and leaving the app dismisses it.
+
+## Heaps in My Journal
+
+Unlock My Journal and tap **+**, then choose **Journal entry** or **Heap**. Before creating your first Heap, a pop-up explains how these folders separate topics, concerns, and facets of life, and how compartmentalizing thoughts can help clear your mind. A Heap requires a name; category and color profile are optional. The explanation is shown again if you cancel before creating your first Heap.
+
+Open a Heap to browse its journals. New journal entries created there default to that Heap; the **Save in** selector also lets you choose another Heap or **Outside Heaps**. Private unfinished entries are kept as a separate draft when the editor closes. The Check in tab keeps its existing draft and saves outside Heaps. Open an existing journal and choose **Move to Heap** to move it into a Heap or back outside all Heaps.
+
+The main journal view lists Heaps and all journals. Each journal card identifies its Heap and uses its color profile. **Show journals outside Heaps** displays only loose entries. The category filter combines journals across matching Heaps; **All categories** removes the category restriction, while **Uncategorized** includes both Heaps without a category and entries outside Heaps. Category matching ignores letter case. Existing journals remain outside Heaps after the database upgrade; timestamps, reflections, and mood History are preserved. Heap names, categories, and the private journal editor use the existing journal lock and secure dialogs.
 
 ## Encrypted Google Drive backups
 
@@ -23,11 +33,13 @@ Selecting a mood opens a supportive pop-up tailored to Low, Down, Okay, Good, or
 3. Choose and confirm a separate backup passphrase of 12–256 characters. Keep it safe; your six-digit journal PIN cannot decrypt backups, and there is no passphrase recovery.
 4. In Android's system save dialog, choose **Google Drive**, an account/folder, and save the `.dpa` file. Other document providers are also supported if chosen explicitly. If Drive is absent from the locations list, open Drive and finish account setup first.
 
-Saved entries, timestamps, moods, and reflections are encrypted on the device before the save dialog opens. Backups exclude unfinished drafts, your PIN verifier, and device authentication settings. A backup uses AES-256-GCM with a random 128-bit salt, a random 96-bit nonce, a 128-bit authentication tag, and a key derived using PBKDF2-HMAC-SHA256 with 600,000 iterations. The backup header is authenticated. No passphrase or plaintext backup is written to disk; the temporary app cache contains only encrypted bytes and is removed after save/cancel/failure, with abandoned encrypted files expired after one hour.
+Saved entries, timestamps, moods, reflections, and all Heaps (including empty Heaps, categories, colors, and journal membership) are encrypted on the device before the save dialog opens. Backups exclude unfinished drafts, your PIN verifier, and device authentication settings. A backup uses AES-256-GCM with a random 128-bit salt, a random 96-bit nonce, a 128-bit authentication tag, and a key derived using PBKDF2-HMAC-SHA256 with 600,000 iterations. The backup header is authenticated. No passphrase or plaintext backup is written to disk; the temporary app cache contains only encrypted bytes and is removed after save/cancel/failure, with abandoned encrypted files expired after one hour.
 
 Daily Pause accesses only the file chosen through Android's Storage Access Framework. It needs no Internet/storage/account permissions, OAuth client ID, Google Cloud project, Google access token, or backend. The Drive document provider handles Google sign-in and network transport. Completing a local provider write does not prove cloud synchronization has finished: Drive may queue a save until connectivity returns. Check Drive before deleting a local journal.
 
-To restore, unlock My Journal, tap **Restore encrypted backup**, and choose the `.dpa` file in Drive. Returning from the picker locks the journal; unlock again, tap **Restore encrypted backup**, enter the backup passphrase, and confirm the entry count. Existing entries remain intact, exact duplicates are skipped, and the merge runs in a transaction. A wrong passphrase, modified backup, unsupported format, or failed restore adds no entries. The local PIN and draft remain unchanged. Files are limited to 20 MiB and 50,000 saved entries.
+To restore, unlock My Journal, tap **Restore encrypted backup**, and choose the `.dpa` file in Drive. Returning from the picker locks the journal; unlock again, tap **Restore encrypted backup**, enter the backup passphrase, and confirm the entry count. Existing entries remain intact, exact duplicates are skipped, and the merge runs in a transaction. A wrong passphrase, modified backup, unsupported format, or failed restore adds no entries. The local PIN and draft remain unchanged. Files are limited to 20 MiB, 50,000 saved entries, and 50,000 Heaps. Existing Heaps are matched by their stable IDs, preserving distinct folders with the same name. Restoring the same backup twice skips exact duplicates.
+
+New exports use backup format version 2 (`DPAUSE02`). Inside the encrypted payload, a Heap count precedes the Heap records (stable ID, name, category, and optional color); the entry records also include an optional Heap ID. Empty Heaps are preserved. Version 1 backups remain readable and restore their entries outside Heaps. Version 2 requires this version of Daily Pause or newer to restore.
 
 Backup format version 1 is binary: 8-byte ASCII `DPAUSE01`, 16-byte random salt, 12-byte random nonce, then AES-GCM ciphertext including its 16-byte tag. The 36-byte header is the additional authenticated data. The encrypted payload uses big-endian integers: entry count (32-bit), then timestamp (64-bit epoch milliseconds), mood (8-bit), and three UTF-8 reflection strings, each prefixed with a 32-bit byte length. Local database IDs are omitted. Parsing enforces file, entry, mood, timestamp, and string bounds before any restore.
 

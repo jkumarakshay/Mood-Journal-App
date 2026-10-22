@@ -55,6 +55,7 @@ public final class MainActivity extends FragmentActivity {
     private AlertDialog privateDialog;
     private HistoryScreen history;
     private BackupController backup;
+    private JournalScreen journals;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -71,6 +72,8 @@ public final class MainActivity extends FragmentActivity {
                 () -> currentTab == HISTORY && journalUnlocked);
         backup = new BackupController(this, state, this::showPrivateDialog,
                 () -> currentTab == JOURNAL && journalUnlocked, this::showJournal);
+        journals = new JournalScreen(this, store, state, () -> currentTab == JOURNAL && journalUnlocked,
+                this::showPrivateDialog, this::showEntry, this::showJournal);
         mood = draft.getInt("mood", 0);
         promptIndex = draft.getInt("prompt", 0) % PROMPTS.length;
         int restoredTab = state == null ? CHECK_IN : state.getInt("tab", state.getBoolean("journal") ? JOURNAL : CHECK_IN);
@@ -278,26 +281,11 @@ public final class MainActivity extends FragmentActivity {
         add(note, text(entries.isEmpty() ? "A mood is enough. A few words are enough.\nMake room for whatever today brings."
                 : "There’s no right way to feel. Look back with curiosity and kindness.", 14, MUTED, false), 8);
         add(page, note, 24);
-        backup.addTo(page, entries.size());
-        if (entries.isEmpty()) {
-            Button first = button("Make your first check-in", true);
-            first.setOnClickListener(v -> showCheckIn());
-            add(page, first, 20);
-        }
-        for (JournalStore.Entry entry : entries) {
-            LinearLayout entryCard = card(Color.WHITE);
-            add(entryCard, text(new SimpleDateFormat("MMM d, yyyy  ·  h:mm a", Locale.getDefault()).format(new Date(entry.createdAt())), 12, MUTED, false), 0);
-            add(entryCard, text(FACES[entry.mood() - 1] + "  " + MOODS[entry.mood() - 1], 21, PURPLE, true), 12);
-            String excerpt = !entry.event().isEmpty() ? entry.event() : !entry.thoughts().isEmpty() ? entry.thoughts() : entry.needs();
-            TextView preview = text(excerpt.isEmpty() ? "A quiet check-in. Sometimes naming a feeling is enough." : excerpt, 15, INK, false);
-            preview.setMaxLines(3);
-            preview.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            add(entryCard, preview, 10);
-            Button open = button("Read this entry  →", false);
-            open.setContentDescription("Read " + MOODS[entry.mood() - 1] + " entry from " + new Date(entry.createdAt()));
-            open.setOnClickListener(v -> showEntry(entry));
-            add(entryCard, open, 14);
-            add(page, entryCard, 16);
+        try {
+            journals.show(page, entries);
+            backup.addTo(page, entries.size() + store.heaps().size());
+        } catch (android.database.SQLException e) {
+            add(page, text("Your journal couldn’t be opened. Try reopening the app. Your entries have not been removed.", 16, INK, false), 24);
         }
         add(page, text("Uninstalling the app or clearing its data removes local entries. Keep an encrypted backup and its passphrase to restore them later.", 12, MUTED, false), 24);
     }
@@ -316,6 +304,7 @@ public final class MainActivity extends FragmentActivity {
         scroll.addView(content);
         showPrivateDialog(new AlertDialog.Builder(this).setTitle(FACES[entry.mood() - 1] + "  Feeling " + MOODS[entry.mood() - 1].toLowerCase(Locale.ROOT))
                 .setView(scroll).setPositiveButton("Close", null)
+                .setNegativeButton("Move to Heap", (d, w) -> journals.moveEntry(entry))
                 .setNeutralButton("Delete", (d, w) -> {
                     if (!journalUnlocked || currentTab != JOURNAL) return;
                     showPrivateDialog(new AlertDialog.Builder(this)
@@ -372,6 +361,7 @@ public final class MainActivity extends FragmentActivity {
         saveDraft();
         state.putInt("tab", currentTab);
         history.saveState(state);
+        journals.saveState(state);
         backup.saveState(state);
         super.onSaveInstanceState(state);
     }

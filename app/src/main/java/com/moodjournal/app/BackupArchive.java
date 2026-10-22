@@ -23,10 +23,16 @@ import javax.crypto.spec.SecretKeySpec;
 /** Versioned, authenticated backup; plaintext and passphrases are never written to disk. */
 final class BackupArchive {
     private static final byte[] MAGIC = "DPAUSE01".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] HEAPS_MAGIC = "DPAUSE02".getBytes(StandardCharsets.US_ASCII);
     private static final int HEADER_SIZE = 36, TAG_SIZE = 16, ITERATIONS = 600_000;
     static final int MAX_BYTES = 20 * 1024 * 1024;
     static final int MAX_ENTRIES = 50_000;
-    record Entry(long createdAt, int mood, String event, String thoughts, String needs) {}
+    record Entry(long createdAt, int mood, String event, String thoughts, String needs, String heapId) {
+        Entry(long createdAt, int mood, String event, String thoughts, String needs) {
+            this(createdAt, mood, event, thoughts, needs, null);
+        }
+    }
+    record Snapshot(List<JournalHeap> heaps, List<Entry> entries) {}
 
     static boolean validPassphrase(char[] password) {
         if (password.length < 12 || password.length > 256) return false;
@@ -35,19 +41,41 @@ final class BackupArchive {
     }
 
     static byte[] encrypt(List<Entry> entries, char[] password) throws IOException, GeneralSecurityException {
+        return encrypt(new Snapshot(java.util.Collections.emptyList(), entries), password, false);
+    }
+
+    static byte[] encrypt(Snapshot snapshot, char[] password) throws IOException, GeneralSecurityException {
+        return encrypt(snapshot, password, true);
+    }
+
+    private static byte[] encrypt(Snapshot snapshot, char[] password, boolean withHeaps) throws IOException, GeneralSecurityException {
+        List<Entry> entries = snapshot.entries();
         if (!validPassphrase(password)) throw new IllegalArgumentException("Use a passphrase of 12 to 256 characters");
         if (entries.size() > MAX_ENTRIES) throw new IOException("Backup has too many entries");
+        if (snapshot.heaps().size() > MAX_ENTRIES) throw new IOException("Backup has too many Heaps");
+        java.util.Set<String> heapIds = new java.util.HashSet<>();
+        for (JournalHeap heap : snapshot.heaps()) if (!heapIds.add(heap.id())) throw new IOException("Duplicate Heap ID");
         byte[] header = new byte[HEADER_SIZE];
         new SecureRandom().nextBytes(header);
-        System.arraycopy(MAGIC, 0, header, 0, MAGIC.length);
+        System.arraycopy(withHeaps ? HEAPS_MAGIC : MAGIC, 0, header, 0, MAGIC.length);
         Cipher cipher = cipher(Cipher.ENCRYPT_MODE, password, header);
         try (WipingBuffer buffer = new WipingBuffer(); DataOutputStream out = new DataOutputStream(buffer)) {
+            if (withHeaps) {
+                out.writeInt(snapshot.heaps().size());
+                for (JournalHeap heap : snapshot.heaps()) {
+                    writeText(out, heap.id()); writeText(out, heap.name()); writeText(out, heap.category());
+                    out.writeInt(heap.color() == null ? 0 : heap.color());
+                    if (buffer.size() > MAX_BYTES - HEADER_SIZE - TAG_SIZE) throw new IOException("Backup exceeds 20 MB");
+                }
+            }
             out.writeInt(entries.size());
             for (Entry entry : entries) {
                 validate(entry);
+                if (entry.heapId() != null && (!withHeaps || !heapIds.contains(entry.heapId()))) throw new IOException("Unknown Heap");
                 out.writeLong(entry.createdAt());
                 out.writeByte(entry.mood());
                 writeText(out, entry.event()); writeText(out, entry.thoughts()); writeText(out, entry.needs());
+                if (withHeaps) writeText(out, entry.heapId() == null ? "" : entry.heapId());
                 if (buffer.size() > MAX_BYTES - HEADER_SIZE - TAG_SIZE) throw new IOException("Backup exceeds 20 MB");
             }
             byte[] plain = buffer.toByteArray();
@@ -61,22 +89,44 @@ final class BackupArchive {
     }
 
     static List<Entry> decrypt(byte[] archive, char[] password) throws IOException, GeneralSecurityException {
+        return decryptSnapshot(archive, password).entries();
+    }
+
+    static Snapshot decryptSnapshot(byte[] archive, char[] password) throws IOException, GeneralSecurityException {
         if (!validPassphrase(password)) throw new IllegalArgumentException("Invalid passphrase length");
         if (archive.length < HEADER_SIZE + TAG_SIZE || archive.length > MAX_BYTES) throw new IOException("Invalid backup size");
-        for (int i = 0; i < MAGIC.length; i++) if (archive[i] != MAGIC[i]) throw new IOException("Unsupported backup format");
+        boolean withHeaps = Arrays.equals(Arrays.copyOf(archive, 8), HEAPS_MAGIC);
+        if (!withHeaps && !Arrays.equals(Arrays.copyOf(archive, 8), MAGIC)) throw new IOException("Unsupported backup format");
         byte[] header = Arrays.copyOf(archive, HEADER_SIZE);
         byte[] plain = cipher(Cipher.DECRYPT_MODE, password, header).doFinal(archive, HEADER_SIZE, archive.length - HEADER_SIZE);
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(plain))) {
+            List<JournalHeap> heaps = new ArrayList<>();
+            java.util.Set<String> heapIds = new java.util.HashSet<>();
+            if (withHeaps) {
+                int heapCount = in.readInt();
+                if (heapCount < 0 || heapCount > MAX_ENTRIES || heapCount > in.available() / 16) throw new IOException("Invalid Heap count");
+                for (int i = 0; i < heapCount; i++) {
+                    String id = readText(in), name = readText(in), category = readText(in);
+                    int color = in.readInt();
+                    try { heaps.add(new JournalHeap(id, name, category, color == 0 ? null : color)); }
+                    catch (IllegalArgumentException e) { throw new IOException("Invalid Heap", e); }
+                    if (!heapIds.add(id)) throw new IOException("Duplicate Heap ID");
+                }
+            }
             int count = in.readInt();
             if (count < 0 || count > MAX_ENTRIES || count > plain.length / 21) throw new IOException("Invalid entry count");
             List<Entry> entries = new ArrayList<>();
             for (int i = 0; i < count; i++) {
-                Entry entry = new Entry(in.readLong(), in.readUnsignedByte(), readText(in), readText(in), readText(in));
+                long createdAt = in.readLong(); int mood = in.readUnsignedByte();
+                String event = readText(in), thoughts = readText(in), needs = readText(in);
+                String heapId = withHeaps ? readText(in) : "";
+                if (!heapId.isEmpty() && !heapIds.contains(heapId)) throw new IOException("Unknown Heap");
+                Entry entry = new Entry(createdAt, mood, event, thoughts, needs, heapId.isEmpty() ? null : heapId);
                 validate(entry);
                 entries.add(entry);
             }
             if (in.read() != -1) throw new IOException("Unexpected backup data");
-            return entries;
+            return new Snapshot(heaps, entries);
         } finally { Arrays.fill(plain, (byte) 0); }
     }
 
