@@ -1,0 +1,8 @@
+<resources>
+    <string name="history_from_label">From: %1$s</string>
+    <string name="history_to_label">To: %1$s</string>
+    <string name="history_invalid_range">Choose an end date on or after the start date.</string>
+    <string name="pin_six_digits">Enter a six-digit PIN.</string>
+    <string name="pin_mismatch">The PINs don’t match. Please try again.</string>
+    <string name="use_biometrics">Use biometrics</string>
+</resources>

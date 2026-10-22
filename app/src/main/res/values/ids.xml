@@ -1,0 +1,33 @@
+<resources>
+    <item name="history_tab" type="id" />
+    <item name="range_week" type="id" />
+    <item name="range_month" type="id" />
+    <item name="range_three_months" type="id" />
+    <item name="range_year" type="id" />
+    <item name="range_custom" type="id" />
+    <item name="history_from" type="id" />
+    <item name="history_to" type="id" />
+    <item name="history_apply" type="id" />
+    <item name="history_date_error" type="id" />
+    <item name="history_date_range" type="id" />
+    <item name="history_grouping" type="id" />
+    <item name="history_summary" type="id" />
+    <item name="history_values_toggle" type="id" />
+    <item name="mood_chart" type="id" />
+    <item name="unlock_pin" type="id" />
+    <item name="confirm_pin" type="id" />
+    <item name="unlock_submit" type="id" />
+    <item name="unlock_biometric" type="id" />
+    <item name="unlock_status" type="id" />
+    <item name="entry_event" type="id" />
+    <item name="entry_thoughts" type="id" />
+    <item name="entry_needs" type="id" />
+    <item name="save_entry" type="id" />
+    <item name="journal_tab" type="id" />
+    <item name="checkin_tab" type="id" />
+    <item name="mood_1" type="id" />
+    <item name="mood_2" type="id" />
+    <item name="mood_3" type="id" />
+    <item name="mood_4" type="id" />
+    <item name="mood_5" type="id" />
+</resources>
