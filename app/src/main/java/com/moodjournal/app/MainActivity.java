@@ -34,6 +34,8 @@ public final class MainActivity extends FragmentActivity {
     private static final String[] MOODS = {"Low", "Down", "Okay", "Good", "Great"};
     private static final String[] FACES = {"☁", "☂", "◒", "❀", "☀"};
     private static final int[] MOOD_IDS = {R.id.mood_1, R.id.mood_2, R.id.mood_3, R.id.mood_4, R.id.mood_5};
+    private static final int[] MOOD_RESPONSES = {R.string.mood_response_low, R.string.mood_response_down,
+            R.string.mood_response_okay, R.string.mood_response_good, R.string.mood_response_great};
     private static final String[] PROMPTS = {
             "What has been on your mind today?",
             "What moment would you like to understand better?",
@@ -162,7 +164,7 @@ public final class MainActivity extends FragmentActivity {
             b.setId(MOOD_IDS[i]);
             b.setTextSize(12);
             b.setPadding(0, dp(8), 0, dp(8));
-            b.setOnClickListener(v -> { mood = selected; updateMoods(); saveDraft(); });
+            b.setOnClickListener(v -> { mood = selected; updateMoods(); saveDraft(); showMoodResponse(selected); });
             moodButtons[i] = b;
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(76), 1);
             if (i > 0) params.setMarginStart(dp(4));
@@ -214,6 +216,22 @@ public final class MainActivity extends FragmentActivity {
             b.setBackground(shape(chosen ? PURPLE : Color.rgb(248, 244, 250), 16));
             b.setContentDescription(MOODS[i] + (chosen ? ", selected" : ", tap to select"));
         }
+    }
+
+    private void showMoodResponse(int selected) {
+        EditText reflection = event;
+        showPrivateDialog(new AlertDialog.Builder(this)
+                .setTitle(getString(selected <= 3 ? R.string.mood_response_hug_title
+                        : R.string.mood_response_high_five_title, MOODS[selected - 1]))
+                .setMessage(MOOD_RESPONSES[selected - 1])
+                .setNegativeButton(R.string.mood_response_later, null)
+                .setPositiveButton(R.string.mood_response_journal, (dialog, which) -> reflection.post(() -> {
+                    if (currentTab != CHECK_IN || event != reflection || mood != selected
+                            || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
+                    reflection.requestFocus();
+                    reflection.requestRectangleOnScreen(new android.graphics.Rect(0, 0, reflection.getWidth(), reflection.getHeight()), true);
+                    ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(reflection, InputMethodManager.SHOW_IMPLICIT);
+                })));
     }
 
     private void saveEntry() {

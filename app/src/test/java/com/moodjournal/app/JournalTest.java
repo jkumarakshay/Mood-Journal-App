@@ -32,7 +32,7 @@ public class JournalTest {
     @Test public void savesReflectionThroughUiAndPersistsAfterReopening() {
         try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();
-            activity.findViewById(R.id.mood_4).performClick();
+            chooseMood(activity, R.id.mood_4);
             ((EditText) activity.findViewById(R.id.entry_event)).setText("  A walk with a friend 🌿  ");
             ((EditText) activity.findViewById(R.id.entry_thoughts)).setText("I felt listened to.");
             ((EditText) activity.findViewById(R.id.entry_needs)).setText("Make time to connect again.");
@@ -55,7 +55,7 @@ public class JournalTest {
 
     @Test public void draftSurvivesPauseAndActivityRecreation() {
         try (ActivityController<MainActivity> first = Robolectric.buildActivity(MainActivity.class).setup()) {
-            first.get().findViewById(R.id.mood_2).performClick();
+            chooseMood(first.get(), R.id.mood_2);
             ((EditText) first.get().findViewById(R.id.entry_event)).setText("An unfinished thought");
             first.pause();
         }
@@ -70,7 +70,7 @@ public class JournalTest {
              JournalStore db = new JournalStore(controller.get())) {
             controller.get().findViewById(R.id.save_entry).performClick();
             assertTrue(db.all().isEmpty());
-            controller.get().findViewById(R.id.mood_3).performClick();
+            chooseMood(controller.get(), R.id.mood_3);
             controller.get().findViewById(R.id.save_entry).performClick();
             assertEquals(1, db.all().size());
             assertEquals("", db.all().get(0).event());
@@ -140,6 +140,15 @@ public class JournalTest {
         if (confirm != null) confirm.setText("642081");
         activity.findViewById(R.id.unlock_submit).performClick();
         await(() -> activity.findViewById(R.id.unlock_submit) == null);
+    }
+
+    static void chooseMood(MainActivity activity, int moodId) {
+        activity.findViewById(moodId).performClick();
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(dialog);
+        assertTrue(dialog.isShowing());
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
     }
 
     static void await(java.util.function.BooleanSupplier condition) {

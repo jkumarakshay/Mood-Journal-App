@@ -1,4 +1,13 @@
 <resources>
+    <string name="mood_response_hug_title">🤗  %1$s</string>
+    <string name="mood_response_high_five_title">🙌  %1$s</string>
+    <string name="mood_response_low">Some days, just existing is a win. Take the win. Stretch for a few minutes, take a short walk, or lie down and stare at the wall for a bit. If it helps, reach out to someone you trust.\n\nFeel like leaving a few words here? Future you can look back and see what helped you get through days like this.</string>
+    <string name="mood_response_down">Hard days spare no one. If you can, take five minutes to yourself, sit in a little quiet, or chat with someone you love.\n\nA few words about today might help you unpack it. Later, you can look back and see how you made it through.</string>
+    <string name="mood_response_okay">Fun fact: “OK” started as a jokey “oll korrect” (“all correct”). An imperfect little win still counts!\n\nJot down what made today feel okay. Future you might spot the little things that helped.</string>
+    <string name="mood_response_good">Glad to hear it! Keep that rhythm going.\n\nWhat helped make today a good one? Leave yourself a few notes so future you can come back to the feeling, or borrow a little inspiration on a tougher day.</string>
+    <string name="mood_response_great">Awesome. No notes. Just. Awesome.\n\nOkay, maybe a few notes! Capture what made today great so future you can relive it and remember how good a day can feel.</string>
+    <string name="mood_response_journal">Let’s journal</string>
+    <string name="mood_response_later">Maybe later</string>
     <string name="backup_passphrase_length">Use a passphrase of 12 to 256 characters.</string>
     <string name="backup_passphrase_mismatch">The passphrases don’t match. Please try again.</string>
     <string name="history_from_label">From: %1$s</string>

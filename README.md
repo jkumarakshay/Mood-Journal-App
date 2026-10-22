@@ -5,6 +5,7 @@ A quiet Android journal for checking in with your mood and making space for refl
 ## Features
 
 - Choose from five moods, from low to great.
+- Get a casual, mood-specific message and an optional invitation to reflect when selecting a mood.
 - Journal freely with optional prompts about what happened, what you felt, and what you need next.
 - Save a mood without writing when that is all you have energy for.
 - Return to an unfinished draft after leaving the app.
@@ -12,6 +13,8 @@ A quiet Android journal for checking in with your mood and making space for refl
 - Protect My Journal with a six-digit PIN and optional enrolled strong biometrics.
 - Explore mood trends in a protected History tab with 1 week, 1 month, 3 months, 1 year, and custom date ranges.
 - Save passphrase-encrypted backups to Google Drive using Android's file picker, and restore missing entries without overwriting your journal.
+
+Selecting a mood opens a supportive pop-up tailored to Low, Down, Okay, Good, or Great. Each message invites a few words for future reflection: remembering good days or noticing what helped through hard ones. **Let’s journal** focuses the reflection field without changing existing writing; **Maybe later** dismisses the message. Selection keeps a draft; **Save this moment** still records the check-in. Restoring a draft does not replay the pop-up, and leaving the app dismisses it.
 
 ## Encrypted Google Drive backups
 

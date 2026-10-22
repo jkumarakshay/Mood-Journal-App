@@ -106,7 +106,7 @@ public class JournalSecurityTest {
     @Test public void savingEntryDoesNotBypassGateAndSecureFlagIsSet() {
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity a = c.get();
-            a.findViewById(R.id.mood_3).performClick();
+            JournalTest.chooseMood(a, R.id.mood_3);
             a.findViewById(R.id.save_entry).performClick();
             assertNotNull(a.findViewById(R.id.confirm_pin));
             assertFalse(containsText(a.getWindow().getDecorView(), "Private journal words"));
