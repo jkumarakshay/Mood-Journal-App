@@ -2,6 +2,7 @@ package com.moodjournal.app;
 
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -16,6 +17,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ImageButton;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -25,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import androidx.fragment.app.FragmentActivity;
+import androidx.activity.OnBackPressedCallback;
 
 public final class MainActivity extends FragmentActivity {
     private static final int CHECK_IN = 0, JOURNAL = 1, HISTORY = 2;
@@ -59,39 +62,58 @@ public final class MainActivity extends FragmentActivity {
     private JournalScreen journals;
     private boolean pendingMoment, createHeapForMoment;
     private int momentGeneration;
+    private int settingsPage = SettingsScreen.NONE;
+    private SettingsScreen settings;
+    private OnBackPressedCallback settingsBack;
 
     @Override public void onCreate(Bundle state) {
+        Appearance.apply(this);
         super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         store = new JournalStore(this);
         draft = getSharedPreferences("draft", MODE_PRIVATE);
         gate = new JournalGate(this, new PinLock(this), JournalGate.systemBiometrics(this), () -> {
-            if (currentTab == CHECK_IN || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
+            if (settingsPage != SettingsScreen.NONE || currentTab == CHECK_IN || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
             journalUnlocked = true;
             hideKeyboard();
             showPrivateTab();
         });
         history = new HistoryScreen(this, store, state, this::showHistory, this::showPrivateDialog,
-                () -> currentTab == HISTORY && journalUnlocked);
+                () -> settingsPage == SettingsScreen.NONE && currentTab == HISTORY && journalUnlocked);
         backup = new BackupController(this, state, this::showPrivateDialog,
-                () -> currentTab == JOURNAL && journalUnlocked, this::showJournal);
-        journals = new JournalScreen(this, store, state, () -> currentTab == JOURNAL && journalUnlocked,
+                () -> settingsPage == SettingsScreen.NONE && currentTab == JOURNAL && journalUnlocked, this::showJournal);
+        journals = new JournalScreen(this, store, state, () -> settingsPage == SettingsScreen.NONE && currentTab == JOURNAL && journalUnlocked,
                 this::showPrivateDialog, this::showEntry, this::showJournal);
+        settings = new SettingsScreen(this, this::openSettings, dark -> {
+            saveDraft();
+            Appearance.setDark(this, dark);
+            recreate();
+        });
+        settingsBack = new OnBackPressedCallback(false) {
+            @Override public void handleOnBackPressed() { backFromSettings(); }
+        };
+        getOnBackPressedDispatcher().addCallback(this, settingsBack);
+        settingsPage = state == null ? SettingsScreen.NONE : state.getInt("settings_page", SettingsScreen.NONE);
+        if (settingsPage < SettingsScreen.NONE || settingsPage > SettingsScreen.THEME) settingsPage = SettingsScreen.NONE;
         mood = draft.getInt("mood", 0);
         pendingMoment = state != null && state.getBoolean("pending_moment") && mood != 0;
         createHeapForMoment = pendingMoment && state.getBoolean("create_heap_for_moment");
         promptIndex = draft.getInt("prompt", 0) % PROMPTS.length;
         int restoredTab = state == null ? CHECK_IN : state.getInt("tab", state.getBoolean("journal") ? JOURNAL : CHECK_IN);
         if (restoredTab != JOURNAL) cancelPendingMoment();
-        if (restoredTab == HISTORY) showHistory();
+        currentTab = restoredTab;
+        if (settingsPage != SettingsScreen.NONE) showSettings();
+        else if (restoredTab == HISTORY) showHistory();
         else if (restoredTab == JOURNAL) showJournal();
         else showCheckIn();
     }
 
     private void frame(int tab) {
         currentTab = tab;
+        settingsBack.setEnabled(settingsPage != SettingsScreen.NONE);
         LinearLayout root = column();
-        root.setBackgroundColor(PAPER);
+        root.setId(R.id.app_root);
+        root.setBackgroundColor(Appearance.color(this, PAPER));
         root.setOnApplyWindowInsetsListener((v, insets) -> {
             if (android.os.Build.VERSION.SDK_INT >= 30) {
                 android.graphics.Insets i = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
@@ -104,6 +126,25 @@ public final class MainActivity extends FragmentActivity {
         });
         setContentView(root);
         root.requestApplyInsets();
+        LinearLayout toolbar = new LinearLayout(this);
+        toolbar.setGravity(Gravity.CENTER_VERTICAL);
+        toolbar.setPadding(dp(24), dp(8), dp(24), dp(4));
+        if (settingsPage != SettingsScreen.NONE) {
+            Button back = button("← " + getString(R.string.settings_back), false);
+            back.setId(R.id.settings_back);
+            back.setOnClickListener(v -> backFromSettings());
+            toolbar.addView(back, new LinearLayout.LayoutParams(-2, dp(48)));
+        }
+        toolbar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
+        ImageButton gear = new ImageButton(this);
+        gear.setId(R.id.settings_button);
+        gear.setImageResource(R.drawable.ic_settings);
+        gear.setImageTintList(ColorStateList.valueOf(Appearance.color(this, PURPLE)));
+        gear.setContentDescription(getString(R.string.settings_title));
+        gear.setBackground(shape(Color.rgb(245, 240, 247), 16));
+        gear.setOnClickListener(v -> openSettings(SettingsScreen.HOME));
+        toolbar.addView(gear, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        root.addView(toolbar);
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         page = column();
@@ -112,16 +153,17 @@ public final class MainActivity extends FragmentActivity {
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         LinearLayout nav = new LinearLayout(this);
         nav.setPadding(dp(16), dp(8), dp(16), dp(8));
-        nav.setBackgroundColor(Color.WHITE);
+        nav.setBackgroundColor(Appearance.color(this, Color.WHITE));
         String[] names = {"Check in", "My Journal", "History"};
         int[] ids = {R.id.checkin_tab, R.id.journal_tab, R.id.history_tab};
         for (int i = 0; i < names.length; i++) {
             final int target = i;
-            Button choice = button(names[i], tab == i);
+            boolean selected = settingsPage == SettingsScreen.NONE && tab == i;
+            Button choice = button(names[i], selected);
             choice.setTextSize(13);
             choice.setId(ids[i]);
-            choice.setSelected(tab == i);
-            choice.setContentDescription(names[i] + (tab == i ? ", selected" : ""));
+            choice.setSelected(selected);
+            choice.setContentDescription(names[i] + (selected ? ", selected" : ""));
             choice.setOnClickListener(v -> openTab(target));
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
             if (i > 0) p.setMarginStart(dp(6));
@@ -131,8 +173,9 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void openTab(int tab) {
-        if (currentTab == tab) return;
+        if (currentTab == tab && settingsPage == SettingsScreen.NONE) return;
         saveDraft();
+        settingsPage = SettingsScreen.NONE;
         cancelPendingMoment();
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
         hideKeyboard();
@@ -145,7 +188,35 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void showPrivateTab() {
-        if (currentTab == HISTORY) showHistory(); else showJournal();
+        if (settingsPage != SettingsScreen.NONE) showSettings();
+        else if (currentTab == HISTORY) showHistory(); else showJournal();
+    }
+
+    private void openSettings(int target) {
+        saveDraft();
+        cancelPendingMoment();
+        hideKeyboard();
+        if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
+        journalUnlocked = false;
+        gate.lock();
+        backup.onPause();
+        settingsPage = target;
+        showSettings();
+    }
+
+    private void showSettings() {
+        frame(currentTab);
+        settings.show(page, settingsPage);
+    }
+
+    private void backFromSettings() {
+        if (settingsPage != SettingsScreen.HOME) {
+            settingsPage = SettingsScreen.HOME;
+            showSettings();
+            return;
+        }
+        settingsPage = SettingsScreen.NONE;
+        if (currentTab == CHECK_IN) showCheckIn(); else showPrivateTab();
     }
 
     private void showHistory() {
@@ -223,7 +294,7 @@ public final class MainActivity extends FragmentActivity {
             if (b == null) continue;
             boolean chosen = mood == i + 1;
             b.setSelected(chosen);
-            b.setTextColor(chosen ? Color.WHITE : INK);
+            b.setTextColor(chosen ? Appearance.onAccent(this) : Appearance.color(this, INK));
             b.setBackground(shape(chosen ? PURPLE : Color.rgb(248, 244, 250), 16));
             b.setContentDescription(MOODS[i] + (chosen ? ", selected" : ", tap to select"));
         }
@@ -237,7 +308,7 @@ public final class MainActivity extends FragmentActivity {
                 .setMessage(MOOD_RESPONSES[selected - 1])
                 .setNegativeButton(R.string.mood_response_later, null)
                 .setPositiveButton(R.string.mood_response_journal, (dialog, which) -> reflection.post(() -> {
-                    if (currentTab != CHECK_IN || event != reflection || mood != selected
+                    if (settingsPage != SettingsScreen.NONE || currentTab != CHECK_IN || event != reflection || mood != selected
                             || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
                     reflection.requestFocus();
                     reflection.requestRectangleOnScreen(new android.graphics.Rect(0, 0, reflection.getWidth(), reflection.getHeight()), true);
@@ -246,7 +317,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void saveEntry() {
-        if (currentTab != CHECK_IN || event == null) return;
+        if (settingsPage != SettingsScreen.NONE || currentTab != CHECK_IN || event == null) return;
         if (mood == 0) {
             Toast.makeText(this, "Choose the mood that feels closest first.", Toast.LENGTH_LONG).show();
             moodButtons[0].requestFocus();
@@ -265,12 +336,12 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private boolean publicMomentActive(int token) {
-        return token == momentGeneration && !pendingMoment && currentTab == CHECK_IN && mood != 0
+        return token == momentGeneration && settingsPage == SettingsScreen.NONE && !pendingMoment && currentTab == CHECK_IN && mood != 0
                 && getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED);
     }
 
     private boolean privateMomentActive(int token) {
-        return token == momentGeneration && pendingMoment && currentTab == JOURNAL && journalUnlocked
+        return token == momentGeneration && settingsPage == SettingsScreen.NONE && pendingMoment && currentTab == JOURNAL && journalUnlocked
                 && getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED);
     }
 
@@ -399,7 +470,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void showEntry(JournalStore.Entry entry) {
-        if (!journalUnlocked || currentTab != JOURNAL) return;
+        if (settingsPage != SettingsScreen.NONE || !journalUnlocked || currentTab != JOURNAL) return;
         LinearLayout content = column();
         content.setPadding(dp(24), dp(12), dp(24), dp(12));
         add(content, text(new SimpleDateFormat("MMMM d, yyyy · h:mm a", Locale.getDefault()).format(new Date(entry.createdAt())), 13, MUTED, false), 0);
@@ -445,7 +516,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void saveDraft() {
-        if (currentTab != CHECK_IN || event == null) return;
+        if (settingsPage != SettingsScreen.NONE || currentTab != CHECK_IN || event == null) return;
         draft.edit().putInt("mood", mood).putInt("prompt", promptIndex)
                 .putString("event", event.getText().toString())
                 .putString("thoughts", thoughts.getText().toString())
@@ -459,16 +530,17 @@ public final class MainActivity extends FragmentActivity {
         journalUnlocked = false;
         gate.lock();
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
-        if (currentTab != CHECK_IN) showPrivateTab();
+        if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN) showPrivateTab();
         super.onPause();
     }
     @Override protected void onResume() {
         super.onResume();
-        if (currentTab != CHECK_IN && !journalUnlocked) showPrivateTab();
+        if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN && !journalUnlocked) showPrivateTab();
     }
     @Override protected void onSaveInstanceState(Bundle state) {
         saveDraft();
         state.putInt("tab", currentTab);
+        state.putInt("settings_page", settingsPage);
         state.putBoolean("pending_moment", pendingMoment);
         state.putBoolean("create_heap_for_moment", createHeapForMoment);
         history.saveState(state);
@@ -498,7 +570,7 @@ public final class MainActivity extends FragmentActivity {
         TextView view = new TextView(this);
         view.setText(value);
         view.setTextSize(size);
-        view.setTextColor(color);
+        view.setTextColor(Appearance.color(this, color));
         view.setLineSpacing(dp(3), 1);
         if (bold) view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         return view;
@@ -513,7 +585,7 @@ public final class MainActivity extends FragmentActivity {
         button.setMinWidth(0);
         button.setMinimumWidth(0);
         button.setPadding(dp(10), dp(10), dp(10), dp(10));
-        button.setTextColor(primary ? Color.WHITE : PURPLE);
+        button.setTextColor(primary ? Appearance.onAccent(this) : Appearance.color(this, PURPLE));
         button.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         button.setBackground(shape(primary ? PURPLE : Color.rgb(245, 240, 247), 16));
         return button;
@@ -524,8 +596,8 @@ public final class MainActivity extends FragmentActivity {
         edit.setHint(hint);
         edit.setText(value);
         edit.setTextSize(15);
-        edit.setTextColor(INK);
-        edit.setHintTextColor(MUTED);
+        edit.setTextColor(Appearance.color(this, INK));
+        edit.setHintTextColor(Appearance.color(this, MUTED));
         edit.setGravity(Gravity.TOP | Gravity.START);
         edit.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         edit.setMinLines(3);
@@ -537,7 +609,7 @@ public final class MainActivity extends FragmentActivity {
     }
     private GradientDrawable shape(int color, int radius) {
         GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(color);
+        drawable.setColor(Appearance.color(this, color));
         drawable.setCornerRadius(dp(radius));
         return drawable;
     }

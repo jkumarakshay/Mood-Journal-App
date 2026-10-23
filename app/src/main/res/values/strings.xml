@@ -1,4 +1,18 @@
 <resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_description">A little space to make Daily Pause yours.</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_title">About Daily Pause</string>
+    <string name="settings_about_summary">A quiet place to check in, reflect, and begin again.</string>
+    <string name="settings_about_overview">Daily Pause is a private space to check in with your mood, reflect on what’s on your mind, and make room for yourself.</string>
+    <string name="settings_about_features">Write freely, organize journals into Heaps, and look back at your mood History to notice patterns over time.</string>
+    <string name="settings_about_privacy">Your saved journals stay on this device unless you choose an encrypted backup. My Journal and History are protected by your PIN or enrolled biometrics.</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_description">Choose the appearance that feels comfortable for you.</string>
+    <string name="settings_theme_saved">Your choice is remembered the next time you open Daily Pause.</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="settings_back">Back</string>
     <string name="moment_heap_prompt">Save in a Heap?</string>
     <string name="moment_heap_message">Choose a Heap for this journal, or select No to save outside Heaps. Unlock My Journal to view your Heaps or create a new one.</string>
     <string name="moment_choose_heap">Choose Heap</string>

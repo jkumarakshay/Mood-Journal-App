@@ -157,7 +157,7 @@ final class JournalGate {
         TextView text = new TextView(activity);
         text.setText(value);
         text.setTextSize(size);
-        text.setTextColor(Color.rgb(49, 43, 53));
+        text.setTextColor(Appearance.color(activity, Color.rgb(49, 43, 53)));
         text.setPadding(0, dp(12), 0, dp(12));
         return text;
     }

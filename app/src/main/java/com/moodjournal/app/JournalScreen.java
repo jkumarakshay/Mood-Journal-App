@@ -284,7 +284,7 @@ final class JournalScreen {
     private EditText field(LinearLayout form, String label, int id, String value, int limit, boolean multiline) {
         TextView heading = text(label, 14, true); heading.setLabelFor(id); add(form, heading, 14);
         EditText field = new EditText(activity); field.setId(id); field.setText(value);
-        field.setHint(label); field.setTextSize(15); field.setTextColor(INK); field.setHintTextColor(MUTED);
+        field.setHint(label); field.setTextSize(15); field.setTextColor(Appearance.color(activity, INK)); field.setHintTextColor(Appearance.color(activity, MUTED));
         field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
                 | (multiline ? InputType.TYPE_TEXT_FLAG_MULTI_LINE : 0));
         field.setSingleLine(!multiline); if (multiline) field.setMinLines(3);
@@ -302,14 +302,14 @@ final class JournalScreen {
     private LinearLayout form() { LinearLayout form = column(); form.setPadding(dp(24), dp(12), dp(24), dp(12)); return form; }
     private LinearLayout column() { LinearLayout layout = new LinearLayout(activity); layout.setOrientation(LinearLayout.VERTICAL); return layout; }
     private LinearLayout card(int color) { LinearLayout card = column(); card.setPadding(dp(18), dp(20), dp(18), dp(20)); card.setBackground(shape(color)); return card; }
-    private GradientDrawable shape(int color) { GradientDrawable shape = new GradientDrawable(); shape.setColor(color); shape.setCornerRadius(dp(20)); return shape; }
+    private GradientDrawable shape(int color) { GradientDrawable shape = new GradientDrawable(); shape.setColor(Appearance.color(activity, color)); shape.setCornerRadius(dp(20)); return shape; }
     private TextView text(String value, int size, boolean bold) {
-        TextView text = new TextView(activity); text.setText(value); text.setTextSize(size); text.setTextColor(INK);
+        TextView text = new TextView(activity); text.setText(value); text.setTextSize(size); text.setTextColor(Appearance.color(activity, INK));
         text.setLineSpacing(dp(3), 1); if (bold) text.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL)); return text;
     }
     private Button button(String value, int id) {
         Button button = new Button(activity); button.setId(id); button.setText(value); button.setAllCaps(false);
-        button.setTextSize(15); button.setTextColor(PURPLE); button.setMinHeight(dp(52));
+        button.setTextSize(15); button.setTextColor(Appearance.color(activity, PURPLE)); button.setMinHeight(dp(52));
         button.setPadding(dp(12), dp(12), dp(12), dp(12)); button.setBackground(shape(0xFFF5F0F7)); return button;
     }
     private void add(LinearLayout parent, View child, int margin) {

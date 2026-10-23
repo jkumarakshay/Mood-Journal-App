@@ -46,9 +46,9 @@ public final class MoodChartView extends View {
         paint.setStrokeWidth(dp(1));
         for (int mood = 1; mood <= 5; mood++) {
             float y = bottom - (mood - 1) * (bottom - top) / 4;
-            paint.setColor(Color.rgb(232, 225, 234));
+            paint.setColor(Appearance.color(getContext(), Color.rgb(232, 225, 234)));
             canvas.drawLine(left, y, right, y, paint);
-            paint.setColor(Color.rgb(109, 100, 112));
+            paint.setColor(Appearance.color(getContext(), Color.rgb(109, 100, 112)));
             paint.setTextAlign(Paint.Align.RIGHT);
             canvas.drawText(mood + " " + LABELS[mood - 1], left - dp(10), y - (paint.ascent() + paint.descent()) / 2, paint);
         }
@@ -67,7 +67,7 @@ public final class MoodChartView extends View {
         paint.setTextAlign(Paint.Align.CENTER);
         canvas.drawText("Date", (left + right) / 2, bottom + dp(43), paint);
         if (series.responses() == 0) {
-            paint.setColor(Color.rgb(109, 100, 112));
+            paint.setColor(Appearance.color(getContext(), Color.rgb(109, 100, 112)));
             canvas.drawText("No check-ins in this range", (left + right) / 2, top + dp(30), paint);
             return;
         }
@@ -79,7 +79,7 @@ public final class MoodChartView extends View {
             float x = series.totalDays() == 1 ? (left + right) / 2
                     : left + (float) ((midpoint - series.start().toEpochDay()) / (series.totalDays() - 1)) * (right - left);
             float y = bottom - (float) (bucket.average() - 1) * (bottom - top) / 4;
-            paint.setColor(Color.rgb(112, 81, 128));
+            paint.setColor(Appearance.color(getContext(), Color.rgb(112, 81, 128)));
             paint.setStrokeWidth(dp(2));
             if (previous) canvas.drawLine(previousX, previousY, x, y, paint);
             canvas.drawCircle(x, y, dp(4), paint);

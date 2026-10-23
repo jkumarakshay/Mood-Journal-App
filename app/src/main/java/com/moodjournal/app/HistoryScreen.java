@@ -188,7 +188,7 @@ final class HistoryScreen {
         TextView view = new TextView(activity);
         view.setText(value);
         view.setTextSize(size);
-        view.setTextColor(Color.rgb(49, 43, 53));
+        view.setTextColor(Appearance.color(activity, Color.rgb(49, 43, 53)));
         view.setLineSpacing(dp(3), 1);
         if (bold) view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         return view;
@@ -202,13 +202,13 @@ final class HistoryScreen {
         view.setMinimumWidth(0);
         view.setMinWidth(0);
         view.setPadding(dp(8), dp(10), dp(8), dp(10));
-        view.setTextColor(selected ? Color.WHITE : Color.rgb(112, 81, 128));
+        view.setTextColor(selected ? Appearance.onAccent(activity) : Appearance.color(activity, Color.rgb(112, 81, 128)));
         view.setBackground(shape(selected ? Color.rgb(112, 81, 128) : Color.rgb(237, 230, 241)));
         return view;
     }
     private GradientDrawable shape(int color) {
         GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(color);
+        drawable.setColor(Appearance.color(activity, color));
         drawable.setCornerRadius(dp(18));
         return drawable;
     }

@@ -1,0 +1,12 @@
+<resources>
+    <style name="AppTheme" parent="AppTheme.Base">
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:navigationBarColor">#FAF7F2</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+    <style name="AppTheme.Dark" parent="AppTheme.Dark.Base">
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:navigationBarColor">#1C1920</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

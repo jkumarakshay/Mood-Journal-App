@@ -1,5 +1,11 @@
 plugins { id 'com.android.application' }
 
+def apkCommitCount = providers.gradleProperty('apkCommitCount').orElse(
+        providers.exec {
+            workingDir rootProject.projectDir
+            commandLine 'git', 'rev-list', '--count', 'HEAD'
+        }.standardOutput.asText.map { it.trim() })
+
 android {
     namespace 'com.moodjournal.app'
     compileSdk 35
@@ -15,6 +21,11 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     testOptions { unitTests.includeAndroidResources = true }
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            output.outputFileName = "Daily-Pause-v1.${apkCommitCount.get()}.apk"
+        }
+    }
 }
 
 dependencies {

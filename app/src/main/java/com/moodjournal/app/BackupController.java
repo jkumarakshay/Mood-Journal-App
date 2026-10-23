@@ -316,7 +316,7 @@ final class BackupController {
 
     private TextView label(String value, int size) {
         TextView view = new TextView(activity);
-        view.setText(value); view.setTextSize(size); view.setTextColor(Color.rgb(49, 43, 53));
+        view.setText(value); view.setTextSize(size); view.setTextColor(Appearance.color(activity, Color.rgb(49, 43, 53)));
         view.setPadding(0, dp(6), 0, dp(10));
         return view;
     }

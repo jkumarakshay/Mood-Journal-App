@@ -12,11 +12,18 @@ A quiet Android journal for checking in with your mood and making space for refl
 - Browse your entries, read a full reflection, and permanently delete an entry after confirmation.
 - Organize journals in named Heaps with optional categories and color profiles, or keep entries outside all Heaps.
 - Use the **+** menu in My Journal to create a journal or Heap; filter journals across Heaps by category.
+- Open Settings from the top-right gear for an About page and a saved Light or Dark theme.
 - Protect My Journal with a six-digit PIN and optional enrolled strong biometrics.
 - Explore mood trends in a protected History tab with 1 week, 1 month, 3 months, 1 year, and custom date ranges.
 - Save passphrase-encrypted backups to Google Drive using Android's file picker, and restore missing entries without overwriting your journal.
 
 Selecting a mood opens a supportive pop-up tailored to Low, Down, Okay, Good, or Great. Each message invites a few words for future reflection: remembering good days or noticing what helped through hard ones. **Let’s journal** focuses the reflection field without changing existing writing; **Maybe later** dismisses the message. Selection keeps a draft; **Save this moment** still records the check-in. Restoring a draft does not replay the pop-up, and leaving the app dismisses it.
+
+## Settings and appearance
+
+The top-right gear opens **Settings** from Check in, My Journal, or History. **About** gives a brief overview of Daily Pause and its privacy features. **Theme** lets you select **Light** or **Dark**, applying the appearance immediately and remembering it across app restarts. Light is the default. The back button returns to Settings and then to the previous tab; the bottom navigation also returns directly to a tab.
+
+Dark mode covers pages, journal and Heap cards, forms, dialogs, authentication, backups, mood History, chart labels, and system bars. Heap colors use darker versions of the same hues; the saved color profiles and encrypted backup format remain unchanged. Opening Settings locks private tabs. Returning to My Journal or History requires another unlock, including after a theme change. Check-in drafts and the selected History range are retained. The appearance preference stays on this device and is not included in journal backups.
 
 ## Heaps in My Journal
 
@@ -71,12 +78,13 @@ Open this folder in Android Studio, or use a JDK 17 or 21 and the Android SDK wi
 ./gradlew assembleDebug
 ```
 
-Installable APK: `app/build/outputs/apk/debug/app-debug.apk`.
+Installable APK: `app/build/outputs/apk/debug/Daily-Pause-v1.<commit-count>.apk`. The number is the total commits reachable from the build's `HEAD`, calculated with `git rev-list --count HEAD`. For example, a checkout with 7 commits produces `Daily-Pause-v1.7.apk`. Builds from an exported source archive without Git metadata can supply the recorded count explicitly with `-PapkCommitCount=7`.
 
 Transfer the APK to an Android phone, open it, and allow installation from the app opening the file when prompted. With a connected development device, use:
 
 ```sh
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+apk_commit_count=$(git rev-list --count HEAD)
+adb install -r "app/build/outputs/apk/debug/Daily-Pause-v1.${apk_commit_count}.apk"
 ```
 
 This is a debug-signed APK for personal testing. Store distribution requires a release build and a securely managed release signing key. Keep the same signing key for future updates; Android cannot update an installation with an APK signed by a different key.

@@ -1,4 +1,12 @@
 <resources>
+    <item name="settings_button" type="id" />
+    <item name="settings_back" type="id" />
+    <item name="settings_title" type="id" />
+    <item name="settings_about" type="id" />
+    <item name="settings_theme" type="id" />
+    <item name="theme_light" type="id" />
+    <item name="theme_dark" type="id" />
+    <item name="app_root" type="id" />
     <item name="cancel_moment_save" type="id" />
     <item name="backup_export" type="id" />
     <item name="backup_restore" type="id" />
