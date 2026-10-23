@@ -1,4 +1,7 @@
 <resources>
+    <item name="export_more" type="id" />
+    <item name="export_action" type="id" />
+    <item name="export_status" type="id" />
     <item name="settings_notification" type="id" />
     <item name="reminder_time" type="id" />
     <item name="reminder_change_time" type="id" />

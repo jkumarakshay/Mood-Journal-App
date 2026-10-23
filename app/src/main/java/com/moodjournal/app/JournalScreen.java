@@ -41,13 +41,15 @@ final class JournalScreen {
     private final Consumer<AlertDialog> showDialog;
     private final Consumer<JournalStore.Entry> openEntry;
     private final Runnable refresh;
+    private final ExportController exports;
     private String activeHeap, category;
     private boolean outsideOnly;
 
     JournalScreen(FragmentActivity activity, JournalStore store, Bundle state, BooleanSupplier authorized,
-                  Consumer<AlertDialog> showDialog, Consumer<JournalStore.Entry> openEntry, Runnable refresh) {
+                  Consumer<AlertDialog> showDialog, Consumer<JournalStore.Entry> openEntry, Runnable refresh, ExportController exports) {
         this.activity = activity; this.store = store; this.authorized = authorized;
         this.showDialog = showDialog; this.openEntry = openEntry; this.refresh = refresh;
+        this.exports = exports;
         if (state != null) {
             activeHeap = state.getString("journal_heap"); category = state.getString("journal_category");
             outsideOnly = state.getBoolean("journal_outside");
@@ -80,7 +82,7 @@ final class JournalScreen {
             back.setOnClickListener(v -> { activeHeap = null; category = null; outsideOnly = false; refresh.run(); });
             add(page, back, 12);
             LinearLayout title = card(heap.background());
-            add(title, text(heap.name(), 24, true), 0);
+            add(title, optionsRow(text(heap.name(), 24, true), exports.heapMenu(heap, entries)), 0);
             add(title, text(heap.category().isEmpty() ? "Uncategorized" : heap.category(), 14, false), 8);
             add(page, title, 16);
         } else {
@@ -118,7 +120,10 @@ final class JournalScreen {
                     folder.setContentDescription("Open Heap " + heap.name() + ", " + count + " entries");
                     folder.setTag(heap.id());
                     folder.setOnClickListener(v -> { activeHeap = heap.id(); refresh.run(); });
-                    add(page, folder, 10);
+                    LinearLayout folderCard = card(heap.background());
+                    folderCard.setPadding(dp(8), dp(8), dp(8), dp(8));
+                    add(folderCard, optionsRow(folder, exports.heapMenu(heap, entries)), 0);
+                    add(page, folderCard, 10);
                 }
                 if (shown == 0) add(page, text(heaps.isEmpty() ? "Use + to give a topic or concern its own space." : "No Heaps in this category.", 14, false), 10);
             }
@@ -136,7 +141,7 @@ final class JournalScreen {
             shown++;
             LinearLayout card = card(heap == null ? Color.WHITE : heap.background());
             card.setTag(entry.id());
-            add(card, text(heap == null ? "Outside Heaps" : "Heap: " + heap.name(), 14, true), 0);
+            add(card, optionsRow(text(heap == null ? "Outside Heaps" : "Heap: " + heap.name(), 14, true), exports.entryMenu(entry, heap)), 0);
             add(card, text(new SimpleDateFormat("MMM d, yyyy  ·  h:mm a", Locale.getDefault()).format(new Date(entry.createdAt())), 12, false), 8);
             add(card, text(MOODS[entry.mood()], 21, true), 12);
             String excerpt = !entry.event().isEmpty() ? entry.event() : !entry.thoughts().isEmpty() ? entry.thoughts() : entry.needs();
@@ -153,6 +158,13 @@ final class JournalScreen {
 
     private static boolean matchesCategory(JournalHeap heap, String category) {
         return category == null || (heap == null ? "" : heap.category()).equalsIgnoreCase(category);
+    }
+
+    LinearLayout optionsRow(View content, View more) {
+        LinearLayout row = new LinearLayout(activity); row.setGravity(android.view.Gravity.TOP);
+        row.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
+        row.addView(more, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        return row;
     }
 
     private void addMenu() {

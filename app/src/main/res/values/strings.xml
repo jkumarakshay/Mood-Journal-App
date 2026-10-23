@@ -1,4 +1,16 @@
 <resources>
+    <string name="journal_more">More options for this journal</string>
+    <string name="heap_more">More options for this Heap</string>
+    <string name="export_action">Export</string>
+    <string name="export_heap_title">Export Heap</string>
+    <string name="export_zip">Export as zip</string>
+    <string name="export_collated">Export as collated PDF</string>
+    <string name="export_readable_note">Use ⋮ to export written journals as readable PDFs or ZIP files. These files do not use backup encryption. Journals without written answers are excluded.</string>
+    <string name="export_saving">Saving your export…</string>
+    <string name="export_saved">Export saved to the selected location.</string>
+    <string name="export_cancelled">Export cancelled.</string>
+    <string name="export_no_picker">No system file picker is available. Please try on a device with a file manager.</string>
+    <string name="export_failed">Couldn’t save the export. Remove any incomplete file in the selected location, check storage, and try again.</string>
     <string name="app_name">Daily Pause</string>
     <string name="settings_notification">Notification</string>
     <string name="reminder_settings_summary">Choose a time for your daily check-in.</string>

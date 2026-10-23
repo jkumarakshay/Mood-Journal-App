@@ -67,6 +67,7 @@ public final class MainActivity extends FragmentActivity {
     private SettingsScreen settings;
     private OnBackPressedCallback settingsBack;
     private ReminderController reminders;
+    private ExportController exports;
 
     @Override public void onCreate(Bundle state) {
         Appearance.apply(this);
@@ -84,8 +85,11 @@ public final class MainActivity extends FragmentActivity {
                 () -> settingsPage == SettingsScreen.NONE && currentTab == HISTORY && journalUnlocked);
         backup = new BackupController(this, state, this::showPrivateDialog,
                 () -> settingsPage == SettingsScreen.NONE && currentTab == JOURNAL && journalUnlocked, this::showJournal);
+        exports = new ExportController(this, state,
+                () -> settingsPage == SettingsScreen.NONE && currentTab == JOURNAL && journalUnlocked,
+                this::showPrivateDialog, this::showJournal);
         journals = new JournalScreen(this, store, state, () -> settingsPage == SettingsScreen.NONE && currentTab == JOURNAL && journalUnlocked,
-                this::showPrivateDialog, this::showEntry, this::showJournal);
+                this::showPrivateDialog, this::showEntry, this::showJournal, exports);
         reminders = new ReminderController(this, this::showPrivateDialog,
                 () -> settingsPage == SettingsScreen.NOTIFICATION, this::showSettings);
         settings = new SettingsScreen(this, this::openSettings, dark -> {
@@ -188,7 +192,7 @@ public final class MainActivity extends FragmentActivity {
         hideKeyboard();
         journalUnlocked = false;
         gate.lock();
-        backup.onPause();
+        backup.onPause(); exports.onPause();
         if (tab == CHECK_IN) showCheckIn();
         else if (tab == JOURNAL) showJournal();
         else showHistory();
@@ -206,7 +210,7 @@ public final class MainActivity extends FragmentActivity {
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
         journalUnlocked = false;
         gate.lock();
-        backup.onPause();
+        backup.onPause(); exports.onPause();
         settingsPage = target;
         showSettings();
     }
@@ -468,6 +472,7 @@ public final class MainActivity extends FragmentActivity {
         add(page, note, 24);
         try {
             journals.show(page, entries);
+            exports.addStatus(page);
             backup.addTo(page, entries.size() + store.heaps().size());
         } catch (android.database.SQLException e) {
             add(page, text("Your journal couldn’t be opened. Try reopening the app. Your entries have not been removed.", 16, INK, false), 24);
@@ -480,7 +485,9 @@ public final class MainActivity extends FragmentActivity {
         if (settingsPage != SettingsScreen.NONE || !journalUnlocked || currentTab != JOURNAL) return;
         LinearLayout content = column();
         content.setPadding(dp(24), dp(12), dp(24), dp(12));
-        add(content, text(new SimpleDateFormat("MMMM d, yyyy · h:mm a", Locale.getDefault()).format(new Date(entry.createdAt())), 13, MUTED, false), 0);
+        JournalHeap heap = store.heaps().stream().filter(h -> h.id().equals(entry.heapId())).findFirst().orElse(null);
+        add(content, journals.optionsRow(text(new SimpleDateFormat("MMMM d, yyyy · h:mm a", Locale.getDefault()).format(new Date(entry.createdAt())), 13, MUTED, false),
+                exports.entryMenu(entry, heap)), 0);
         detail(content, "What was on your mind", entry.event());
         detail(content, "Thoughts & feelings", entry.thoughts());
         detail(content, "What you needed", entry.needs());
@@ -534,6 +541,7 @@ public final class MainActivity extends FragmentActivity {
         saveDraft();
         momentGeneration++;
         backup.onPause();
+        exports.onPause();
         journalUnlocked = false;
         gate.lock();
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
@@ -552,7 +560,7 @@ public final class MainActivity extends FragmentActivity {
         if (!ReminderScheduler.OPEN_CHECK_IN.equals(intent.getAction())) return;
         saveDraft(); cancelPendingMoment(); hideKeyboard();
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
-        journalUnlocked = false; gate.lock(); backup.onPause(); settingsPage = SettingsScreen.NONE;
+        journalUnlocked = false; gate.lock(); backup.onPause(); exports.onPause(); settingsPage = SettingsScreen.NONE;
         intent.setAction(null); showCheckIn();
     }
     @Override protected void onSaveInstanceState(Bundle state) {
@@ -564,9 +572,10 @@ public final class MainActivity extends FragmentActivity {
         history.saveState(state);
         journals.saveState(state);
         backup.saveState(state);
+        exports.saveState(state);
         super.onSaveInstanceState(state);
     }
-    @Override protected void onDestroy() { gate.close(); backup.close(); store.close(); super.onDestroy(); }
+    @Override protected void onDestroy() { gate.close(); backup.close(); exports.close(); store.close(); super.onDestroy(); }
 
     private void hideKeyboard() {
         View focused = getCurrentFocus();
