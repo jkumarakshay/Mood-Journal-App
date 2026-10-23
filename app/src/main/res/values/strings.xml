@@ -1,4 +1,19 @@
 <resources>
+    <string name="mood_graph">Mood Graph</string>
+    <string name="mood_analysis">Mood Analysis</string>
+    <string name="analytics_choose_view">Choose Mood Graph or Mood Analysis</string>
+    <string name="analysis_brand">DAILY PAUSE  /  GETTING TO KNOW YOUR PATTERNS</string>
+    <string name="analysis_intro">A gentle look at what tends to accompany your higher and lower moods. Your journals are analyzed on this device.</string>
+    <string name="analysis_loading">Looking through your recorded days…</string>
+    <string name="analysis_failed">Your analysis couldn’t be prepared. Your journals have not been changed. Please try again.</string>
+    <string name="analysis_retry">Try again</string>
+    <string name="analysis_gathering_title">Let your story take shape</string>
+    <string name="analysis_progress">Journaling days recorded: %1$d / %2$d in the last 90 days.</string>
+    <string name="analysis_gathering_body">Your first patterns need at least 30 distinct journaling days—about a month. Multiple entries on one day count as one day. Keep checking in; weekly reviews begin once there is enough information.</string>
+    <string name="analysis_date_range">%1$s – %2$s</string>
+    <string name="analysis_days">Recorded days: %1$d · daily averages · recent 90-day window</string>
+    <string name="analysis_review_dates">Reviewed %1$s\nNext weekly review due %2$s</string>
+    <string name="analysis_limits">Patterns describe associations, not causes or diagnoses. Themes and written tone are estimates from English text. Uncertain text and missing data are left out. Android may delay a background review while saving battery; opening Mood Analysis catches up when due. Older history is used only for repeated month-of-year comparisons.</string>
     <string name="settings_weather">Weather</string>
     <string name="weather_celsius">Celsius (°C)</string>
     <string name="weather_fahrenheit">Fahrenheit (°F)</string>
@@ -25,14 +40,6 @@
     <string name="weather_locating">Finding your approximate location…</string>
     <string name="weather_location_failed">Couldn’t get your location. Turn on device location and try again, or choose a city.</string>
     <string name="weather_current_location">Current location</string>
-    <string name="weather_question">Did the weather today contribute to how you feel today?</string>
-    <string-array name="weather_answers">
-        <item>Absolutely yes</item>
-        <item>Kinda yeah</item>
-        <item>Did not matter</item>
-        <item>Not really</item>
-        <item>Absolutely not</item>
-    </string-array>
     <string name="journal_more">More options for this journal</string>
     <string name="heap_more">More options for this Heap</string>
     <string name="export_action">Export</string>
@@ -87,8 +94,8 @@
     <string name="settings_about_title">About Daily Pause</string>
     <string name="settings_about_summary">A quiet place to check in, reflect, and begin again.</string>
     <string name="settings_about_overview">Daily Pause is a private space to check in with your mood, reflect on what’s on your mind, and make room for yourself.</string>
-    <string name="settings_about_features">Write freely, organize journals into Heaps, and look back at your mood History to notice patterns over time.</string>
-    <string name="settings_about_privacy">Your saved journals stay on this device unless you export or choose an encrypted backup. My Journal and History are protected by your PIN or enrolled biometrics. Weather sends your chosen city or rounded coordinates to Open-Meteo; your journal text, moods, and answers are never sent with weather requests.</string>
+    <string name="settings_about_features">Write freely, organize journals into Heaps, and look back at your Analytics to explore your Mood Graph and private weekly patterns.</string>
+    <string name="settings_about_privacy">Your saved journals stay on this device unless you export or choose an encrypted backup. My Journal and Analytics are protected by your PIN or enrolled biometrics. Weather sends your chosen city or rounded coordinates to Open-Meteo; your journal text, moods, and answers are never sent with weather requests.</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_description">Choose the appearance that feels comfortable for you.</string>
     <string name="settings_theme_saved">Your choice is remembered the next time you open Daily Pause.</string>

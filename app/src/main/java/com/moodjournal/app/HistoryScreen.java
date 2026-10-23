@@ -56,7 +56,7 @@ final class HistoryScreen {
     void show(LinearLayout page) {
         if (!authorized.getAsBoolean()) return;
         add(page, label("DAILY PAUSE  /  LOOKING BACK", 11, true), 0);
-        TextView title = label("History", 36, false);
+        TextView title = label("Mood Graph", 36, false);
         title.setTypeface(Typeface.create("serif", Typeface.NORMAL));
         add(page, title, 16);
         add(page, label("Notice how your feelings move over time.", 15, false), 8);
@@ -125,7 +125,7 @@ final class HistoryScreen {
         MoodHistory.Series series;
         try { series = MoodHistory.summarize(store.moodsBetween(from, to, ZoneId.systemDefault()), from, to, ZoneId.systemDefault()); }
         catch (android.database.SQLException e) {
-            add(page, label("Your mood history couldn’t be opened. Please try again. Your entries have not been removed.", 16, false), 24);
+            add(page, label("Your mood graph couldn’t be opened. Please try again. Your entries have not been removed.", 16, false), 24);
             return;
         }
         TextView dateRange = label(from.format(dates) + " – " + to.format(dates), 14, true);

@@ -108,7 +108,7 @@ public class SettingsThemeTest {
 
     @Test public void settingsFromHistoryRemainsOnThemeAfterRecreationAndRetainsHistoryRange() {
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup()) {
-            MainActivity a = c.get(); a.findViewById(R.id.history_tab).performClick(); JournalTest.unlockJournal(a);
+            MainActivity a = c.get(); AnalyticsTestSupport.graph(a); JournalTest.unlockJournal(a);
             a.findViewById(R.id.range_month).performClick();
             themePage(a); a.findViewById(R.id.theme_dark).performClick(); idle(); c.recreate();
             assertEquals("Theme", title(c.get())); assertNull(c.get().findViewById(R.id.unlock_pin));

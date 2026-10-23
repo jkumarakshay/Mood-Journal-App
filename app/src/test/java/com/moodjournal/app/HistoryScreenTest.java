@@ -34,7 +34,7 @@ public class HistoryScreenTest {
     @Test public void historyIsGatedAndSwitchingToJournalRequiresAnotherUnlock() {
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity a = c.get();
-            a.findViewById(R.id.history_tab).performClick();
+            AnalyticsTestSupport.graph(a);
             assertNull(a.findViewById(R.id.mood_chart));
             assertNotNull(a.findViewById(R.id.confirm_pin));
             JournalTest.unlockJournal(a);
@@ -50,7 +50,7 @@ public class HistoryScreenTest {
         try (JournalStore store = new JournalStore(context)) { store.add(5, "", "", ""); }
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity a = c.get();
-            a.findViewById(R.id.history_tab).performClick();
+            AnalyticsTestSupport.graph(a);
             JournalTest.unlockJournal(a);
             assertTrue(label(a, R.id.history_grouping).startsWith("Daily"));
             assertTrue(label(a, R.id.history_summary).contains("1 recorded check-ins"));
@@ -69,7 +69,7 @@ public class HistoryScreenTest {
     @Test public void customDatesValidateOrderThenApplyBothBoundaries() {
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity a = c.get();
-            a.findViewById(R.id.history_tab).performClick();
+            AnalyticsTestSupport.graph(a);
             JournalTest.unlockJournal(a);
             a.findViewById(R.id.range_custom).performClick();
             LocalDate today = LocalDate.now();
@@ -88,7 +88,7 @@ public class HistoryScreenTest {
     @Test public void backgroundAndRecreationRelockHistoryAndPreserveSelectedRange() {
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity a = c.get();
-            a.findViewById(R.id.history_tab).performClick();
+            AnalyticsTestSupport.graph(a);
             JournalTest.unlockJournal(a);
             a.findViewById(R.id.range_year).performClick();
             c.pause().stop().start().resume().visible();

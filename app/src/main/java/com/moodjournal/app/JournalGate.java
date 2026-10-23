@@ -41,7 +41,7 @@ final class JournalGate {
                     @Override public void onAuthenticationFailed() { error.accept("Biometric not recognized. Try again or use your PIN."); }
                 });
                 prompt.authenticate(new BiometricPrompt.PromptInfo.Builder().setTitle("Unlock Daily Pause")
-                        .setSubtitle("Your journal and mood history stay private")
+                        .setSubtitle("Your journal and analytics stay private")
                         .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                         .setNegativeButtonText("Use PIN").build());
             }
@@ -70,8 +70,8 @@ final class JournalGate {
         final int current = generation;
         boolean setup = !pinLock.hasPin();
         page.addView(label("Your private space is locked", 28));
-        page.addView(label(setup ? "Create a six-digit PIN to protect your journal and mood history. You’ll confirm it below."
-                : "Enter your PIN to open your journal or mood history.", 16));
+        page.addView(label(setup ? "Create a six-digit PIN to protect your journal and analytics. You’ll confirm it below."
+                : "Enter your PIN to open your journal or analytics.", 16));
         pin = field(setup ? "Choose a six-digit PIN" : "Six-digit PIN", R.id.unlock_pin);
         page.addView(pin);
         confirm = null;

@@ -1,4 +1,12 @@
 <resources>
+    <item name="analytics_selector" type="id" />
+    <item name="analytics_graph" type="id" />
+    <item name="analytics_analysis" type="id" />
+    <item name="analysis_title" type="id" />
+    <item name="analysis_status" type="id" />
+    <item name="analysis_weather" type="id" />
+    <item name="analysis_responses" type="id" />
+    <item name="analysis_time" type="id" />
     <item name="settings_weather" type="id" />
     <item name="weather_celsius" type="id" />
     <item name="weather_fahrenheit" type="id" />

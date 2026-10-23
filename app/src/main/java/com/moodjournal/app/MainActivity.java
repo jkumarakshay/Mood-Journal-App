@@ -19,10 +19,10 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ImageButton;
-import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.PopupMenu;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.ArrayList;
@@ -70,7 +70,9 @@ public final class MainActivity extends FragmentActivity {
     private ReminderController reminders;
     private ExportController exports;
     private WeatherController weather;
-    private RadioGroup weatherAnswers;
+    private AnalysisScreen analysis;
+    private int analyticsMode;
+    private PopupMenu analyticsMenu;
 
     @Override public void onCreate(Bundle state) {
         Appearance.apply(this);
@@ -85,7 +87,9 @@ public final class MainActivity extends FragmentActivity {
             showPrivateTab();
         });
         history = new HistoryScreen(this, store, state, this::showHistory, this::showPrivateDialog,
-                () -> settingsPage == SettingsScreen.NONE && currentTab == HISTORY && journalUnlocked);
+                () -> settingsPage == SettingsScreen.NONE && currentTab == HISTORY && analyticsMode == 0 && journalUnlocked);
+        analysis = new AnalysisScreen(this, () -> settingsPage == SettingsScreen.NONE && currentTab == HISTORY && analyticsMode == 1 && journalUnlocked, this::showHistory);
+        analyticsMode = state == null ? 0 : Math.max(0, Math.min(1, state.getInt("analytics_mode", 0)));
         backup = new BackupController(this, state, this::showPrivateDialog,
                 () -> settingsPage == SettingsScreen.NONE && currentTab == JOURNAL && journalUnlocked, this::showJournal);
         exports = new ExportController(this, state,
@@ -171,7 +175,7 @@ public final class MainActivity extends FragmentActivity {
         LinearLayout nav = new LinearLayout(this);
         nav.setPadding(dp(16), dp(8), dp(16), dp(8));
         nav.setBackgroundColor(Appearance.color(this, Color.WHITE));
-        String[] names = {"Check in", "My Journal", "History"};
+        String[] names = {"Check in", "My Journal", "Analytics"};
         int[] ids = {R.id.checkin_tab, R.id.journal_tab, R.id.history_tab};
         for (int i = 0; i < names.length; i++) {
             final int target = i;
@@ -181,7 +185,7 @@ public final class MainActivity extends FragmentActivity {
             choice.setId(ids[i]);
             choice.setSelected(selected);
             choice.setContentDescription(names[i] + (selected ? ", selected" : ""));
-            choice.setOnClickListener(v -> openTab(target));
+            choice.setOnClickListener(v -> { if (target == HISTORY) showAnalyticsMenu(v); else openTab(target); });
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
             if (i > 0) p.setMarginStart(dp(6));
             nav.addView(choice, p);
@@ -192,6 +196,7 @@ public final class MainActivity extends FragmentActivity {
     private void openTab(int tab) {
         if (currentTab == tab && settingsPage == SettingsScreen.NONE) return;
         saveDraft();
+        dismissAnalyticsMenu(); analysis.onLeave();
         settingsPage = SettingsScreen.NONE;
         cancelPendingMoment();
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
@@ -211,6 +216,7 @@ public final class MainActivity extends FragmentActivity {
 
     private void openSettings(int target) {
         saveDraft();
+        dismissAnalyticsMenu(); analysis.onLeave();
         cancelPendingMoment();
         hideKeyboard();
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
@@ -239,8 +245,33 @@ public final class MainActivity extends FragmentActivity {
     private void showHistory() {
         frame(HISTORY);
         if (!journalUnlocked) gate.show(page);
-        else history.show(page);
+        else {
+            Button selector = button(getString(analyticsMode == 0 ? R.string.mood_graph : R.string.mood_analysis) + "  ▾", false);
+            selector.setId(R.id.analytics_selector); selector.setContentDescription(getString(R.string.analytics_choose_view));
+            selector.setOnClickListener(this::showAnalyticsMenu); add(page, selector, 0);
+            if (analyticsMode == 0) history.show(page); else analysis.show(page);
+        }
     }
+
+    private void showAnalyticsMenu(View anchor) {
+        if (!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
+        dismissAnalyticsMenu();
+        analyticsMenu = new PopupMenu(this, anchor, Gravity.END);
+        analyticsMenu.getMenu().add(0, R.id.analytics_graph, 0, R.string.mood_graph);
+        analyticsMenu.getMenu().add(0, R.id.analytics_analysis, 1, R.string.mood_analysis);
+        analyticsMenu.setOnMenuItemClickListener(item -> {
+            if (!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return false;
+            openAnalytics(item.getItemId() == R.id.analytics_analysis ? 1 : 0); return true;
+        });
+        analyticsMenu.show();
+    }
+    private void openAnalytics(int mode) {
+        dismissAnalyticsMenu(); analysis.onLeave();
+        if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
+        analyticsMode = mode;
+        if (currentTab == HISTORY && settingsPage == SettingsScreen.NONE) showHistory(); else openTab(HISTORY);
+    }
+    private void dismissAnalyticsMenu() { if (analyticsMenu != null) { analyticsMenu.dismiss(); analyticsMenu = null; } }
 
     private void showCheckIn() {
         journalUnlocked = false;
@@ -295,7 +326,6 @@ public final class MainActivity extends FragmentActivity {
         add(writing, needsLabel, 22);
         needs = input("A small next step, a little rest, someone to talk to…", R.id.entry_needs, draft.getString("needs", ""));
         add(writing, needs, 10);
-        weatherAnswers = WeatherReflection.add(this, writing, Math.max(0, Math.min(5, draft.getInt("weather_answer", 0))), selected -> saveDraft());
         add(page, writing, 20);
         Button save = button("Save this moment", true);
         save.setId(R.id.save_entry);
@@ -438,7 +468,6 @@ public final class MainActivity extends FragmentActivity {
             draft.edit().clear().apply();
             mood = 0;
             event = thoughts = needs = null;
-            weatherAnswers = null;
             hideKeyboard();
             journals.openDestination(heapId);
             showJournal();
@@ -550,12 +579,12 @@ public final class MainActivity extends FragmentActivity {
         draft.edit().putInt("mood", mood).putInt("prompt", promptIndex)
                 .putString("event", event.getText().toString())
                 .putString("thoughts", thoughts.getText().toString())
-                .putString("needs", needs.getText().toString())
-                .putInt("weather_answer", WeatherReflection.answer(weatherAnswers)).apply();
+                .putString("needs", needs.getText().toString()).apply();
     }
 
     @Override protected void onPause() {
         saveDraft();
+        dismissAnalyticsMenu(); analysis.onLeave();
         momentGeneration++;
         backup.onPause();
         exports.onPause();
@@ -578,6 +607,7 @@ public final class MainActivity extends FragmentActivity {
         setIntent(intent);
         if (!ReminderScheduler.OPEN_CHECK_IN.equals(intent.getAction())) return;
         saveDraft(); cancelPendingMoment(); hideKeyboard();
+        dismissAnalyticsMenu(); analysis.onLeave();
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
         journalUnlocked = false; gate.lock(); backup.onPause(); exports.onPause(); weather.onPause(); settingsPage = SettingsScreen.NONE;
         intent.setAction(null); showCheckIn();
@@ -586,6 +616,7 @@ public final class MainActivity extends FragmentActivity {
         saveDraft();
         state.putInt("tab", currentTab);
         state.putInt("settings_page", settingsPage);
+        state.putInt("analytics_mode", analyticsMode);
         state.putBoolean("pending_moment", pendingMoment);
         state.putBoolean("create_heap_for_moment", createHeapForMoment);
         history.saveState(state);
@@ -594,7 +625,7 @@ public final class MainActivity extends FragmentActivity {
         exports.saveState(state);
         super.onSaveInstanceState(state);
     }
-    @Override protected void onDestroy() { gate.close(); backup.close(); exports.close(); weather.close(); store.close(); super.onDestroy(); }
+    @Override protected void onDestroy() { gate.close(); backup.close(); exports.close(); weather.close(); analysis.close(); store.close(); super.onDestroy(); }
 
     private void hideKeyboard() {
         View focused = getCurrentFocus();

@@ -1,0 +1,142 @@
+# Daily Pause English reference corpus v1, authored for this app.
+# label<TAB>reference text. No user journals or external training services are used.
+work	My boss gave me a deadline at work. The office workload and meetings were demanding.
+work	I finished a project for my job and my manager appreciated my effort.
+work	My colleagues and coworkers helped with a difficult task during my shift.
+work	I am overwhelmed by work pressure, deadlines and too many responsibilities.
+work	The presentation at the office went well and I got good feedback from my team.
+work	I worry about my career, getting promoted and being successful at my job.
+work	The commute to work was exhausting and my supervisor scheduled overtime.
+work	I need a break from emails, clients, meetings and the workload at my workplace.
+work	I was laid off and I am anxious about looking for a new job and interviews.
+work	My business has many customers and I am managing a team with tight deadlines.
+relationships	My partner and I had an argument about our relationship.
+relationships	My girlfriend and I spent a lovely evening together on a date.
+relationships	My boyfriend listened to me and we felt close and connected.
+relationships	My husband and I disagree and our marriage has been difficult.
+relationships	I miss my wife and need more affection, intimacy and support from my spouse.
+relationships	The breakup hurts and I am struggling with dating and rejection.
+relationships	We talked honestly, resolved a conflict and repaired trust in our relationship.
+relationships	I feel insecure about romance and whether my partner cares for me.
+family	I called my mother and father and talked about our family.
+family	My parents visited and my brother and sister stayed for dinner.
+family	Spending time with my children and caring for my baby filled the day.
+family	My son and daughter needed help and parenting has been tiring.
+family	I miss my grandparents and worry about an elderly relative.
+family	My mum and dad argued with my siblings and family tension was stressful.
+family	My kids laughed together and we had a wonderful family day.
+family	There are too many chores and caring responsibilities at home with the children.
+social	I caught up with a friend over coffee and felt connected.
+social	My friends invited me to dinner and it was good to socialize.
+social	I feel lonely and isolated and wish someone would call or message.
+social	Spending time with people and having a conversation helped me feel supported.
+social	I joined a club, met new people and enjoyed a social gathering.
+social	I stayed alone and missed the company of friends and community.
+social	Talking with a close friend gave me encouragement and companionship.
+social	I cancelled plans with friends because social interactions felt overwhelming.
+sleep	I slept badly last night and woke up tired and exhausted.
+sleep	I got a good night's sleep and woke feeling rested and refreshed.
+sleep	I need more rest, a nap and an earlier bedtime.
+sleep	I could not sleep because of insomnia and lay awake all night.
+sleep	Going to bed early helped my energy after a peaceful sleep.
+sleep	I am fatigued after staying up late and not getting enough sleep.
+sleep	I rested on the sofa and took a quiet break to recover my energy.
+sleep	I have trouble falling asleep and keep waking during the night.
+exercise	I went to the gym and completed my workout with weights.
+exercise	Running, jogging and stretching helped me feel stronger.
+exercise	I enjoyed a long walk and some gentle movement after sitting all day.
+exercise	I cycled to the park and played a game of football with my team.
+exercise	My training session included swimming and exercise for my fitness.
+exercise	I skipped my workout and wish I had made time for physical activity.
+exercise	Dancing, yoga and a short exercise class made me feel energized.
+exercise	I lifted weights and felt proud of my strength and fitness progress.
+outdoors	I spent time outside in the sunshine and fresh air.
+outdoors	Walking in nature, noticing trees and visiting a park felt peaceful.
+outdoors	I went hiking in the woods and enjoyed the forest and countryside.
+outdoors	The garden was full of flowers and I spent an afternoon gardening.
+outdoors	I stayed indoors all day and missed daylight and being outdoors.
+outdoors	The beach, sea and mountain scenery helped me slow down.
+outdoors	I watched the sunset outside and enjoyed the birds and trees.
+outdoors	Getting outside for some sunlight and fresh air would help me.
+health	My headache, pain and illness made the day difficult.
+health	I felt sick and had a doctor's appointment at the hospital.
+health	I worry about my physical health, symptoms and medical test results.
+health	My body is sore and I am recovering from an injury and treatment.
+health	I have a migraine and feel unwell with nausea and a fever.
+health	My medication helped with the pain and I am feeling healthier.
+health	The dentist visit and medical appointment took up my afternoon.
+health	I have chronic pain and fatigue and need help managing my symptoms.
+money	I am anxious about money, bills and paying the rent.
+money	My finances are tight and I worry about debt and my bank balance.
+money	I saved some money and made progress with budgeting and savings.
+money	An unexpected expense and credit card payment made me stressed.
+money	I got paid and felt relieved about being able to afford groceries.
+money	Financial insecurity, mortgage payments and expenses are on my mind.
+money	I need help managing my spending, taxes and household budget.
+money	I am worried about the cost of living and not having enough income.
+study	I studied for an exam and finished my homework and assignments.
+study	My university classes, lectures and coursework were challenging.
+study	I learned something new during a course and enjoyed reading and studying.
+study	I am nervous about school grades, tests and academic performance.
+study	My teacher and classmates helped me understand the lesson.
+study	I passed an examination and made progress with my education.
+study	My dissertation, revision and studying for finals are taking all my time.
+study	I need to focus on an assignment and prepare for an important test at college.
+hobbies	I enjoyed painting, drawing and making art in my free time.
+hobbies	Playing music, practicing guitar and singing helped me express myself.
+hobbies	I read a novel, watched a movie and relaxed with my favorite hobby.
+hobbies	Cooking, baking and trying a new recipe were satisfying.
+hobbies	I played a game, took photographs and worked on a creative project.
+hobbies	I miss making time for crafts, knitting and other hobbies.
+hobbies	Writing a story, pottery and creativity gave me a sense of joy.
+hobbies	I worked on my painting and spent an hour sketching rather than going to my job.
+mindfulness	I meditated, breathed slowly and practiced mindfulness.
+mindfulness	Taking a pause and being present helped me feel grounded.
+mindfulness	I reflected in my journal and noticed my thoughts without judging them.
+mindfulness	Prayer, gratitude and a moment of reflection helped me find perspective.
+mindfulness	I practiced deep breathing and a calming meditation.
+mindfulness	I need a quiet moment to notice my feelings and be kind to myself.
+mindfulness	I took time to sit quietly and gently bring my attention to the present.
+mindfulness	Mindful breathing and self compassion helped me settle my thoughts.
+positive	I am happy, joyful and excited. Things are going well and I feel good.
+positive	I felt grateful, thankful and lucky to have such a wonderful day.
+positive	I am proud of myself and satisfied with the progress I made.
+positive	I feel calm, peaceful, relaxed and content after a lovely day.
+positive	I enjoyed the experience and it made me smile and laugh.
+positive	I feel hopeful, optimistic and confident about what comes next.
+positive	I am relieved and reassured. I feel supported, loved and understood.
+positive	This was delightful, fun and uplifting. I felt energized and cheerful.
+positive	I was not sad or upset. I felt happy and pleased with how things went.
+positive	I was not stressed or worried after getting help. Everything felt easier.
+positive	I no longer feel lonely or afraid. I feel safe and connected.
+positive	It was a good day. I liked it and felt better afterward.
+positive	A pleasant conversation and a small success gave me encouragement.
+positive	I was able to relax and enjoy myself. It was satisfying and rewarding.
+positive	I felt lighter and more settled after putting my thoughts into words.
+positive	I am feeling good about work and excited about a new opportunity.
+negative	I am sad, unhappy and upset. It was a bad day and I feel low.
+negative	I feel stressed, overwhelmed and anxious about everything I need to do.
+negative	I am angry, frustrated and irritated after a difficult experience.
+negative	I feel lonely, isolated, rejected and disconnected from other people.
+negative	I am worried, nervous and afraid about what might happen.
+negative	I felt disappointed, discouraged and helpless when things went wrong.
+negative	I am exhausted, miserable and drained. Nothing felt enjoyable.
+negative	I feel ashamed, guilty and embarrassed about what happened.
+negative	I was not happy or pleased. I did not enjoy it at all.
+negative	I am not relaxed or calm. I feel tense and restless.
+negative	I did not feel supported or understood. I felt ignored and hurt.
+negative	I am not excited or hopeful. I am dreading what comes next.
+negative	It was a terrible day. I disliked it and felt worse afterward.
+negative	The pressure is too much and I am having a hard time coping.
+negative	I was hurt by the argument and frustrated by the lack of support.
+negative	I feel bad about work and worried about another overwhelming deadline.
+neutral	I went to work and came home. I had lunch and did the laundry.
+neutral	I wrote down what happened during the day and noted a few details.
+neutral	I have an appointment tomorrow and need to buy groceries on the way home.
+neutral	There was a meeting in the morning and I read a book in the evening.
+neutral	I watched television, answered a message and made dinner.
+neutral	I am not sure how I feel and do not have much to say about today.
+neutral	I noticed that the day was ordinary and things were about the same.
+neutral	I walked to the bus stop and waited for the next bus.
+neutral	I need to send an email and check the schedule for the coming week.
+neutral	There were both good and bad moments and my feelings were mixed.

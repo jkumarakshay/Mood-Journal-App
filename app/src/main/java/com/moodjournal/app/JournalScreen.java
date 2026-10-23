@@ -15,7 +15,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -227,7 +226,6 @@ final class JournalScreen {
         EditText event = field(form, "What’s on your mind? (optional)", R.id.journal_entry_event, draft.getString("event", ""), 20000, true);
         EditText thoughts = field(form, "Thoughts & feelings (optional)", R.id.journal_entry_thoughts, draft.getString("thoughts", ""), 20000, true);
         EditText needs = field(form, "What would help? (optional)", R.id.journal_entry_needs, draft.getString("needs", ""), 20000, true);
-        RadioGroup weatherAnswers = WeatherReflection.add(activity, form, Math.max(0, Math.min(5, draft.getInt("weather_answer", 0))), answer -> {});
         List<JournalHeap> heaps = store.heaps();
         add(form, text("Save in", 14, true), 12);
         Spinner destination = destinations(heaps, draft.getString("heap", activeHeap));
@@ -242,7 +240,6 @@ final class JournalScreen {
             draft.edit().putInt("mood", mood.getSelectedItemPosition()).putString("event", event.getText().toString())
                     .putString("thoughts", thoughts.getText().toString()).putString("needs", needs.getText().toString())
                     .putString("heap", destinationId(destination, heaps)).apply();
-            draft.edit().putInt("weather_answer", WeatherReflection.answer(weatherAnswers)).apply();
         });
         showDialog.accept(dialog);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
@@ -250,7 +247,7 @@ final class JournalScreen {
             if (mood.getSelectedItemPosition() == 0) { error.setText("Choose the mood that feels closest first."); return; }
             try {
                 store.add(mood.getSelectedItemPosition(), event.getText().toString(), thoughts.getText().toString(),
-                        needs.getText().toString(), destinationId(destination, heaps), WeatherReflection.answer(weatherAnswers),
+                        needs.getText().toString(), destinationId(destination, heaps), draft.getInt("weather_answer", 0),
                         new WeatherRepository(activity).current(System.currentTimeMillis()));
                 saved[0] = true; draft.edit().clear().apply(); dialog.dismiss(); refresh.run();
             } catch (android.database.SQLException e) { error.setText("Couldn’t save your journal. Your writing is still here. Please try again."); }

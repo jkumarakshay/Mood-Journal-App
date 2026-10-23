@@ -56,23 +56,23 @@ public class WeatherScreenTest {
         }
     }
 
-    @Test public void exactFiveAnswersAreSingleChoiceAndDraftSurvivesSettingsAndRecreation() {
+    @Test public void weatherQuestionIsRemovedWhileLegacyDraftSurvivesSettingsAndRecreation() {
+        context.getSharedPreferences("draft", 0).edit().putInt("weather_answer", 2).commit();
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup()) {
-            assertTrue(text(c.get().getWindow().getDecorView(), WeatherReflection.QUESTION));
-            RadioGroup answers = c.get().findViewById(R.id.weather_answers); assertEquals(5, answers.getChildCount()); assertEquals(-1, answers.getCheckedRadioButtonId());
-            for (int i = 0; i < 5; i++) assertEquals(WeatherReflection.ANSWERS[i + 1], ((TextView) answers.getChildAt(i)).getText().toString());
-            c.get().findViewById(R.id.weather_answer_4).performClick(); c.get().findViewById(R.id.weather_answer_2).performClick();
-            assertFalse(((android.widget.RadioButton) c.get().findViewById(R.id.weather_answer_4)).isChecked());
+            assertFalse(text(c.get().getWindow().getDecorView(), WeatherReflection.QUESTION));
+            assertNull(c.get().findViewById(R.id.weather_answers));
             c.get().findViewById(R.id.settings_button).performClick(); c.get().findViewById(R.id.settings_weather).performClick();
             c.recreate(); c.get().findViewById(R.id.checkin_tab).performClick();
-            assertEquals(R.id.weather_answer_2, ((RadioGroup) c.get().findViewById(R.id.weather_answers)).getCheckedRadioButtonId());
+            assertNull(c.get().findViewById(R.id.weather_answers));
+            assertEquals(2, context.getSharedPreferences("draft", 0).getInt("weather_answer", 0));
             try (JournalStore store = new JournalStore(context)) { assertTrue(store.all().isEmpty()); }
         }
     }
 
     @Test public void saveOutsideHeapsIncludesAnswerAndForecastAndDetailsShowBoth() {
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup(); JournalStore store = new JournalStore(context)) {
-            JournalTest.chooseMood(c.get(), R.id.mood_4); c.get().findViewById(R.id.weather_answer_1).performClick();
+            JournalTest.chooseMood(c.get(), R.id.mood_4);
+            context.getSharedPreferences("draft", 0).edit().putInt("weather_answer", 1).commit();
             ((EditText) c.get().findViewById(R.id.entry_event)).setText("A walk in the sun"); JournalTest.saveOutsideHeaps(c.get());
             JournalStore.Entry saved = store.all().get(0); assertEquals(1, saved.weatherAnswer()); assertEquals(forecast, saved.weather());
             assertNull(c.get().findViewById(R.id.export_more)); JournalTest.unlockJournal(c.get());
@@ -86,7 +86,8 @@ public class WeatherScreenTest {
         JournalHeap heap;
         try (JournalStore store = new JournalStore(context)) { heap = store.addHeap("Outside", "Life", null); }
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup(); JournalStore store = new JournalStore(context)) {
-            JournalTest.chooseMood(c.get(), R.id.mood_3); c.get().findViewById(R.id.weather_answer_2).performClick();
+            JournalTest.chooseMood(c.get(), R.id.mood_3);
+            context.getSharedPreferences("draft", 0).edit().putInt("weather_answer", 2).commit();
             c.get().findViewById(R.id.save_entry).performClick(); ShadowAlertDialog.getLatestAlertDialog().getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle();
             new WeatherRepository(context).cache(new WeatherSnapshot(forecast.date(), 5, 0, "Rainy", WeatherClient.ATTRIBUTION, System.currentTimeMillis(), 0));
             JournalTest.unlockJournal(c.get()); Shadows.shadowOf(ShadowAlertDialog.getLatestAlertDialog()).clickOnItem(0); idle();
@@ -97,7 +98,7 @@ public class WeatherScreenTest {
     @Test public void offlineAnswerOnlyReflectionCanBeSavedAndExportedWithoutInventingWeather() {
         context.getSharedPreferences("weather", 0).edit().clear().commit();
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup(); JournalStore store = new JournalStore(context)) {
-            JournalTest.chooseMood(c.get(), R.id.mood_2); c.get().findViewById(R.id.weather_answer_5).performClick(); JournalTest.saveOutsideHeaps(c.get());
+            JournalTest.chooseMood(c.get(), R.id.mood_2); context.getSharedPreferences("draft", 0).edit().putInt("weather_answer", 5).commit(); JournalTest.saveOutsideHeaps(c.get());
             JournalStore.Entry entry = store.all().get(0); assertNull(entry.weather()); assertEquals(5, entry.weatherAnswer()); assertTrue(JournalExport.hasWriting(entry));
             assertFalse(JournalExport.hasWriting(new JournalStore.Entry(10, 1, 3, "", "", "", null, 0, forecast)));
         }
@@ -120,11 +121,12 @@ public class WeatherScreenTest {
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup(); JournalStore store = new JournalStore(context)) {
             c.get().findViewById(R.id.journal_tab).performClick(); JournalTest.unlockJournal(c.get());
             addJournal(c.get()); AlertDialog editor = ShadowAlertDialog.getLatestAlertDialog();
-            editor.findViewById(R.id.weather_answer_3).performClick();
+            assertNull(editor.findViewById(R.id.weather_answers));
+            context.getSharedPreferences("journal_entry_draft", 0).edit().putInt("weather_answer", 3).commit();
             ((android.widget.Spinner) editor.findViewById(R.id.journal_entry_mood)).setSelection(3);
             editor.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); idle();
             addJournal(c.get()); editor = ShadowAlertDialog.getLatestAlertDialog();
-            assertEquals(R.id.weather_answer_3, ((RadioGroup) editor.findViewById(R.id.weather_answers)).getCheckedRadioButtonId());
+            assertNull(editor.findViewById(R.id.weather_answers));
             editor.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle();
             assertEquals(3, store.all().get(0).weatherAnswer()); assertEquals(forecast, store.all().get(0).weather());
         }

@@ -17,7 +17,7 @@ final class JournalStore extends SQLiteOpenHelper {
         }
     }
 
-    JournalStore(Context context) { super(context, "journal.db", null, 3); }
+    JournalStore(Context context) { super(context, "journal.db", null, 4); }
 
     @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
 
@@ -27,10 +27,11 @@ final class JournalStore extends SQLiteOpenHelper {
                 + "mood INTEGER NOT NULL CHECK(mood BETWEEN 1 AND 5), event TEXT NOT NULL, "
                 + "thoughts TEXT NOT NULL, needs TEXT NOT NULL, heap_id TEXT REFERENCES heaps(id), "
                 + "weather_answer INTEGER NOT NULL DEFAULT 0 CHECK(weather_answer BETWEEN 0 AND 5), weather TEXT)");
+        createAnalysis(db);
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 1 || newVersion > 3 || oldVersion >= newVersion) throw new IllegalStateException("A journal migration is required; never discard entries.");
+        if (oldVersion < 1 || newVersion > 4 || oldVersion >= newVersion) throw new IllegalStateException("A journal migration is required; never discard entries.");
         if (oldVersion < 2) {
             createHeaps(db);
             db.execSQL("ALTER TABLE entries ADD COLUMN heap_id TEXT REFERENCES heaps(id)");
@@ -38,6 +39,19 @@ final class JournalStore extends SQLiteOpenHelper {
         if (oldVersion < 3 && newVersion >= 3) {
             db.execSQL("ALTER TABLE entries ADD COLUMN weather_answer INTEGER NOT NULL DEFAULT 0 CHECK(weather_answer BETWEEN 0 AND 5)");
             db.execSQL("ALTER TABLE entries ADD COLUMN weather TEXT");
+        }
+        if (oldVersion < 4 && newVersion >= 4) createAnalysis(db);
+    }
+
+    private void createAnalysis(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE analytics_meta (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL DEFAULT 0, destructive_revision INTEGER NOT NULL DEFAULT 0)");
+        db.execSQL("INSERT INTO analytics_meta(id) VALUES(1)");
+        db.execSQL("CREATE TABLE analytics_cache (id INTEGER PRIMARY KEY CHECK(id=1), report TEXT, revision INTEGER NOT NULL DEFAULT 0, zone TEXT, next_due INTEGER NOT NULL DEFAULT 0)");
+        for (String table : new String[]{"entries", "heaps"}) {
+            db.execSQL("CREATE TRIGGER analytics_" + table + "_insert AFTER INSERT ON " + table + " BEGIN UPDATE analytics_meta SET revision=revision+1 WHERE id=1; END");
+            for (String operation : new String[]{"UPDATE", "DELETE"})
+                db.execSQL("CREATE TRIGGER analytics_" + table + "_" + operation.toLowerCase(java.util.Locale.ROOT) + " AFTER " + operation + " ON " + table
+                        + " BEGIN UPDATE analytics_meta SET revision=revision+1,destructive_revision=destructive_revision+1 WHERE id=1; UPDATE analytics_cache SET report=NULL WHERE id=1; END");
         }
     }
 
