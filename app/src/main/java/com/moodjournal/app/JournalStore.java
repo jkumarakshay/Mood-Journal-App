@@ -10,9 +10,14 @@ import java.util.List;
 
 /** Journal content is kept in the app's private database, with backup disabled. */
 final class JournalStore extends SQLiteOpenHelper {
-    record Entry(long id, long createdAt, int mood, String event, String thoughts, String needs, String heapId) {}
+    record Entry(long id, long createdAt, int mood, String event, String thoughts, String needs, String heapId,
+                 int weatherAnswer, WeatherSnapshot weather) {
+        Entry(long id, long createdAt, int mood, String event, String thoughts, String needs, String heapId) {
+            this(id, createdAt, mood, event, thoughts, needs, heapId, 0, null);
+        }
+    }
 
-    JournalStore(Context context) { super(context, "journal.db", null, 2); }
+    JournalStore(Context context) { super(context, "journal.db", null, 3); }
 
     @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
 
@@ -20,14 +25,20 @@ final class JournalStore extends SQLiteOpenHelper {
         createHeaps(db);
         db.execSQL("CREATE TABLE entries (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at INTEGER NOT NULL, "
                 + "mood INTEGER NOT NULL CHECK(mood BETWEEN 1 AND 5), event TEXT NOT NULL, "
-                + "thoughts TEXT NOT NULL, needs TEXT NOT NULL, heap_id TEXT REFERENCES heaps(id))");
+                + "thoughts TEXT NOT NULL, needs TEXT NOT NULL, heap_id TEXT REFERENCES heaps(id), "
+                + "weather_answer INTEGER NOT NULL DEFAULT 0 CHECK(weather_answer BETWEEN 0 AND 5), weather TEXT)");
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion == 1 && newVersion == 2) {
+        if (oldVersion < 1 || newVersion > 3 || oldVersion >= newVersion) throw new IllegalStateException("A journal migration is required; never discard entries.");
+        if (oldVersion < 2) {
             createHeaps(db);
             db.execSQL("ALTER TABLE entries ADD COLUMN heap_id TEXT REFERENCES heaps(id)");
-        } else throw new IllegalStateException("A journal migration is required; never discard entries.");
+        }
+        if (oldVersion < 3 && newVersion >= 3) {
+            db.execSQL("ALTER TABLE entries ADD COLUMN weather_answer INTEGER NOT NULL DEFAULT 0 CHECK(weather_answer BETWEEN 0 AND 5)");
+            db.execSQL("ALTER TABLE entries ADD COLUMN weather TEXT");
+        }
     }
 
     private void createHeaps(SQLiteDatabase db) {
@@ -66,7 +77,12 @@ final class JournalStore extends SQLiteOpenHelper {
     }
 
     long add(int mood, String event, String thoughts, String needs, String heapId) {
+        return add(mood, event, thoughts, needs, heapId, 0, null);
+    }
+
+    long add(int mood, String event, String thoughts, String needs, String heapId, int weatherAnswer, WeatherSnapshot weather) {
         if (mood < 1 || mood > 5) throw new IllegalArgumentException("Choose a mood");
+        WeatherReflection.validate(weatherAnswer);
         ContentValues values = new ContentValues();
         values.put("created_at", System.currentTimeMillis());
         values.put("mood", mood);
@@ -74,6 +90,7 @@ final class JournalStore extends SQLiteOpenHelper {
         values.put("thoughts", thoughts.trim());
         values.put("needs", needs.trim());
         values.put("heap_id", heapId);
+        values.put("weather_answer", weatherAnswer); values.put("weather", weather == null ? null : weather.encode());
         return getWritableDatabase().insertOrThrow("entries", null, values);
     }
 
@@ -81,7 +98,7 @@ final class JournalStore extends SQLiteOpenHelper {
         List<Entry> entries = new ArrayList<>();
         try (Cursor c = getReadableDatabase().query("entries", null, null, null, null, null, "created_at DESC, id DESC")) {
             while (c.moveToNext()) entries.add(new Entry(c.getLong(0), c.getLong(1), c.getInt(2),
-                    c.getString(3), c.getString(4), c.getString(5), c.getString(6)));
+                    c.getString(3), c.getString(4), c.getString(5), c.getString(6), c.getInt(7), WeatherSnapshot.decode(c.getString(8))));
         }
         return entries;
     }
@@ -90,7 +107,7 @@ final class JournalStore extends SQLiteOpenHelper {
 
     List<BackupArchive.Entry> backupEntries() {
         List<BackupArchive.Entry> result = new ArrayList<>();
-        for (Entry entry : all()) result.add(new BackupArchive.Entry(entry.createdAt(), entry.mood(), entry.event(), entry.thoughts(), entry.needs(), entry.heapId()));
+        for (Entry entry : all()) result.add(new BackupArchive.Entry(entry.createdAt(), entry.mood(), entry.event(), entry.thoughts(), entry.needs(), entry.heapId(), entry.weatherAnswer(), entry.weather()));
         return result;
     }
 
@@ -124,6 +141,7 @@ final class JournalStore extends SQLiteOpenHelper {
                 values.put("created_at", entry.createdAt()); values.put("mood", entry.mood());
                 values.put("event", entry.event()); values.put("thoughts", entry.thoughts()); values.put("needs", entry.needs());
                 values.put("heap_id", entry.heapId());
+                values.put("weather_answer", entry.weatherAnswer()); values.put("weather", entry.weather() == null ? null : entry.weather().encode());
                 db.insertOrThrow("entries", null, values);
                 added++;
             }

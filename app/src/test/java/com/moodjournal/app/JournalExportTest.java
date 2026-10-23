@@ -89,4 +89,20 @@ public class JournalExportTest {
         assertThrows(IOException.class, () -> JournalExport.writePdf(broken, List.of(entry(1, "One.")), heap));
     }
 
+    @Test public void weatherAnswerOnlyEntriesAreExportableAndBothUnitsRenderWithoutChangingSnapshot() throws Exception {
+        WeatherSnapshot weather = new WeatherSnapshot("2026-10-23", 28, 10, "Sunny", WeatherClient.ATTRIBUTION, 1, 0);
+        JournalStore.Entry reflection = new JournalStore.Entry(1, 1, 4, "", "", "", heap.id(), 2, weather);
+        assertTrue(JournalExport.hasWriting(reflection));
+        ByteArrayOutputStream celsius = new ByteArrayOutputStream(); JournalExport.writePdf(celsius, List.of(reflection), heap, false);
+        android.graphics.Bitmap first = RecordingPdfDocument.last().images.get(0);
+        ByteArrayOutputStream fahrenheit = new ByteArrayOutputStream(); JournalExport.writePdf(fahrenheit, List.of(reflection), heap, true);
+        android.graphics.Bitmap second = RecordingPdfDocument.last().images.get(0);
+        assertFalse("Converted temperatures must change rendered output", first.sameAs(second));
+        assertEquals(28, weather.highC(), 0); assertEquals(10, weather.lowC(), 0);
+        ByteArrayOutputStream zip = new ByteArrayOutputStream(); JournalExport.writeZip(zip, List.of(reflection), heap, true);
+        try (ZipInputStream input = new ZipInputStream(new ByteArrayInputStream(zip.toByteArray()))) {
+            assertNotNull(input.getNextEntry()); assertTrue(input.getNextEntry() == null);
+        }
+    }
+
 }

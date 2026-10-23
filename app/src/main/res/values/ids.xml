@@ -1,4 +1,21 @@
 <resources>
+    <item name="settings_weather" type="id" />
+    <item name="weather_celsius" type="id" />
+    <item name="weather_fahrenheit" type="id" />
+    <item name="weather_summary" type="id" />
+    <item name="weather_location" type="id" />
+    <item name="weather_use_location" type="id" />
+    <item name="weather_choose_city" type="id" />
+    <item name="weather_refresh" type="id" />
+    <item name="weather_status" type="id" />
+    <item name="weather_city_query" type="id" />
+    <item name="weather_city_error" type="id" />
+    <item name="weather_answers" type="id" />
+    <item name="weather_answer_1" type="id" />
+    <item name="weather_answer_2" type="id" />
+    <item name="weather_answer_3" type="id" />
+    <item name="weather_answer_4" type="id" />
+    <item name="weather_answer_5" type="id" />
     <item name="export_more" type="id" />
     <item name="export_action" type="id" />
     <item name="export_status" type="id" />

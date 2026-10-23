@@ -24,10 +24,15 @@ import javax.crypto.spec.SecretKeySpec;
 final class BackupArchive {
     private static final byte[] MAGIC = "DPAUSE01".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] HEAPS_MAGIC = "DPAUSE02".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] WEATHER_MAGIC = "DPAUSE03".getBytes(StandardCharsets.US_ASCII);
     private static final int HEADER_SIZE = 36, TAG_SIZE = 16, ITERATIONS = 600_000;
     static final int MAX_BYTES = 20 * 1024 * 1024;
     static final int MAX_ENTRIES = 50_000;
-    record Entry(long createdAt, int mood, String event, String thoughts, String needs, String heapId) {
+    record Entry(long createdAt, int mood, String event, String thoughts, String needs, String heapId,
+                 int weatherAnswer, WeatherSnapshot weather) {
+        Entry(long createdAt, int mood, String event, String thoughts, String needs, String heapId) {
+            this(createdAt, mood, event, thoughts, needs, heapId, 0, null);
+        }
         Entry(long createdAt, int mood, String event, String thoughts, String needs) {
             this(createdAt, mood, event, thoughts, needs, null);
         }
@@ -50,6 +55,8 @@ final class BackupArchive {
 
     private static byte[] encrypt(Snapshot snapshot, char[] password, boolean withHeaps) throws IOException, GeneralSecurityException {
         List<Entry> entries = snapshot.entries();
+        boolean withWeather = entries.stream().anyMatch(entry -> entry.weatherAnswer() != 0 || entry.weather() != null);
+        boolean heapFormat = withHeaps || withWeather;
         if (!validPassphrase(password)) throw new IllegalArgumentException("Use a passphrase of 12 to 256 characters");
         if (entries.size() > MAX_ENTRIES) throw new IOException("Backup has too many entries");
         if (snapshot.heaps().size() > MAX_ENTRIES) throw new IOException("Backup has too many Heaps");
@@ -57,10 +64,10 @@ final class BackupArchive {
         for (JournalHeap heap : snapshot.heaps()) if (!heapIds.add(heap.id())) throw new IOException("Duplicate Heap ID");
         byte[] header = new byte[HEADER_SIZE];
         new SecureRandom().nextBytes(header);
-        System.arraycopy(withHeaps ? HEAPS_MAGIC : MAGIC, 0, header, 0, MAGIC.length);
+        System.arraycopy(withWeather ? WEATHER_MAGIC : withHeaps ? HEAPS_MAGIC : MAGIC, 0, header, 0, MAGIC.length);
         Cipher cipher = cipher(Cipher.ENCRYPT_MODE, password, header);
         try (WipingBuffer buffer = new WipingBuffer(); DataOutputStream out = new DataOutputStream(buffer)) {
-            if (withHeaps) {
+            if (heapFormat) {
                 out.writeInt(snapshot.heaps().size());
                 for (JournalHeap heap : snapshot.heaps()) {
                     writeText(out, heap.id()); writeText(out, heap.name()); writeText(out, heap.category());
@@ -75,7 +82,10 @@ final class BackupArchive {
                 out.writeLong(entry.createdAt());
                 out.writeByte(entry.mood());
                 writeText(out, entry.event()); writeText(out, entry.thoughts()); writeText(out, entry.needs());
-                if (withHeaps) writeText(out, entry.heapId() == null ? "" : entry.heapId());
+                if (heapFormat) writeText(out, entry.heapId() == null ? "" : entry.heapId());
+                if (withWeather) {
+                    out.writeByte(entry.weatherAnswer()); writeText(out, entry.weather() == null ? "" : entry.weather().encode());
+                }
                 if (buffer.size() > MAX_BYTES - HEADER_SIZE - TAG_SIZE) throw new IOException("Backup exceeds 20 MB");
             }
             byte[] plain = buffer.toByteArray();
@@ -95,7 +105,8 @@ final class BackupArchive {
     static Snapshot decryptSnapshot(byte[] archive, char[] password) throws IOException, GeneralSecurityException {
         if (!validPassphrase(password)) throw new IllegalArgumentException("Invalid passphrase length");
         if (archive.length < HEADER_SIZE + TAG_SIZE || archive.length > MAX_BYTES) throw new IOException("Invalid backup size");
-        boolean withHeaps = Arrays.equals(Arrays.copyOf(archive, 8), HEAPS_MAGIC);
+        boolean withWeather = Arrays.equals(Arrays.copyOf(archive, 8), WEATHER_MAGIC);
+        boolean withHeaps = withWeather || Arrays.equals(Arrays.copyOf(archive, 8), HEAPS_MAGIC);
         if (!withHeaps && !Arrays.equals(Arrays.copyOf(archive, 8), MAGIC)) throw new IOException("Unsupported backup format");
         byte[] header = Arrays.copyOf(archive, HEADER_SIZE);
         byte[] plain = cipher(Cipher.DECRYPT_MODE, password, header).doFinal(archive, HEADER_SIZE, archive.length - HEADER_SIZE);
@@ -121,7 +132,11 @@ final class BackupArchive {
                 String event = readText(in), thoughts = readText(in), needs = readText(in);
                 String heapId = withHeaps ? readText(in) : "";
                 if (!heapId.isEmpty() && !heapIds.contains(heapId)) throw new IOException("Unknown Heap");
-                Entry entry = new Entry(createdAt, mood, event, thoughts, needs, heapId.isEmpty() ? null : heapId);
+                int weatherAnswer = withWeather ? in.readUnsignedByte() : 0;
+                String weatherText = withWeather ? readText(in) : "";
+                WeatherSnapshot weather = WeatherSnapshot.decode(weatherText);
+                if (!weatherText.isEmpty() && weather == null) throw new IOException("Invalid weather");
+                Entry entry = new Entry(createdAt, mood, event, thoughts, needs, heapId.isEmpty() ? null : heapId, weatherAnswer, weather);
                 validate(entry);
                 entries.add(entry);
             }
@@ -157,6 +172,7 @@ final class BackupArchive {
 
     private static void validate(Entry entry) throws IOException {
         if (entry.createdAt() < 0 || entry.mood() < 1 || entry.mood() > 5) throw new IOException("Invalid journal entry");
+        if (entry.weatherAnswer() < 0 || entry.weatherAnswer() > 5) throw new IOException("Invalid weather answer");
         for (String text : new String[]{entry.event(), entry.thoughts(), entry.needs()})
             if (text == null || text.length() > 20_000) throw new IOException("Invalid journal text");
     }

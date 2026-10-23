@@ -118,6 +118,7 @@ final class ExportController {
         if (uri == null) { finish(R.string.export_cancelled); return; }
         if (!"content".equals(uri.getScheme())) { finish(R.string.export_failed); return; }
         busy = true; refreshIfAuthorized();
+        boolean fahrenheit = WeatherReflection.fahrenheit(activity);
         worker.execute(() -> {
             int result = R.string.export_saved;
             try (JournalStore store = new JournalStore(context)) {
@@ -137,8 +138,8 @@ final class ExportController {
                 if (entries.isEmpty()) throw new IOException("Nothing to export");
                 try (OutputStream output = context.getContentResolver().openOutputStream(uri, "wt")) {
                     if (output == null) throw new IOException("No output stream");
-                    if (request.zip()) JournalExport.writeZip(output, entries, heap);
-                    else JournalExport.writePdf(output, entries, heap);
+                    if (request.zip()) JournalExport.writeZip(output, entries, heap, fahrenheit);
+                    else JournalExport.writePdf(output, entries, heap, fahrenheit);
                     output.flush();
                 }
             } catch (Exception e) {

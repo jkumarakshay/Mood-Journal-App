@@ -19,6 +19,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ImageButton;
+import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -68,6 +69,8 @@ public final class MainActivity extends FragmentActivity {
     private OnBackPressedCallback settingsBack;
     private ReminderController reminders;
     private ExportController exports;
+    private WeatherController weather;
+    private RadioGroup weatherAnswers;
 
     @Override public void onCreate(Bundle state) {
         Appearance.apply(this);
@@ -92,17 +95,19 @@ public final class MainActivity extends FragmentActivity {
                 this::showPrivateDialog, this::showEntry, this::showJournal, exports);
         reminders = new ReminderController(this, this::showPrivateDialog,
                 () -> settingsPage == SettingsScreen.NOTIFICATION, this::showSettings);
+        weather = new WeatherController(this, this::showPrivateDialog,
+                () -> settingsPage == SettingsScreen.WEATHER, this::showSettings, () -> openSettings(SettingsScreen.WEATHER));
         settings = new SettingsScreen(this, this::openSettings, dark -> {
             saveDraft();
             Appearance.setDark(this, dark);
             recreate();
-        }, reminders);
+        }, reminders, weather);
         settingsBack = new OnBackPressedCallback(false) {
             @Override public void handleOnBackPressed() { backFromSettings(); }
         };
         getOnBackPressedDispatcher().addCallback(this, settingsBack);
         settingsPage = state == null ? SettingsScreen.NONE : state.getInt("settings_page", SettingsScreen.NONE);
-        if (settingsPage < SettingsScreen.NONE || settingsPage > SettingsScreen.NOTIFICATION) settingsPage = SettingsScreen.NONE;
+        if (settingsPage < SettingsScreen.NONE || settingsPage > SettingsScreen.WEATHER) settingsPage = SettingsScreen.NONE;
         mood = draft.getInt("mood", 0);
         pendingMoment = state != null && state.getBoolean("pending_moment") && mood != 0;
         createHeapForMoment = pendingMoment && state.getBoolean("create_heap_for_moment");
@@ -146,7 +151,8 @@ public final class MainActivity extends FragmentActivity {
             back.setOnClickListener(v -> backFromSettings());
             toolbar.addView(back, new LinearLayout.LayoutParams(-2, dp(48)));
         }
-        toolbar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
+        if (settingsPage == SettingsScreen.NONE && tab == CHECK_IN) toolbar.addView(weather.header(), new LinearLayout.LayoutParams(0, -2, 1));
+        else toolbar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
         ImageButton gear = new ImageButton(this);
         gear.setId(R.id.settings_button);
         gear.setImageResource(R.drawable.ic_settings);
@@ -192,7 +198,7 @@ public final class MainActivity extends FragmentActivity {
         hideKeyboard();
         journalUnlocked = false;
         gate.lock();
-        backup.onPause(); exports.onPause();
+        backup.onPause(); exports.onPause(); weather.onPause();
         if (tab == CHECK_IN) showCheckIn();
         else if (tab == JOURNAL) showJournal();
         else showHistory();
@@ -210,7 +216,7 @@ public final class MainActivity extends FragmentActivity {
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
         journalUnlocked = false;
         gate.lock();
-        backup.onPause(); exports.onPause();
+        backup.onPause(); exports.onPause(); weather.onPause();
         settingsPage = target;
         showSettings();
     }
@@ -289,12 +295,13 @@ public final class MainActivity extends FragmentActivity {
         add(writing, needsLabel, 22);
         needs = input("A small next step, a little rest, someone to talk to…", R.id.entry_needs, draft.getString("needs", ""));
         add(writing, needs, 10);
+        weatherAnswers = WeatherReflection.add(this, writing, Math.max(0, Math.min(5, draft.getInt("weather_answer", 0))), selected -> saveDraft());
         add(page, writing, 20);
         Button save = button("Save this moment", true);
         save.setId(R.id.save_entry);
         save.setOnClickListener(v -> saveEntry());
         add(page, save, 20);
-        TextView privacy = text("Entries stay on this device unless you choose an encrypted backup.\nYour unfinished writing is saved as a draft.", 12, MUTED, false);
+        TextView privacy = text("Journal entries stay on this device unless you export or back them up.\nYour unfinished writing is saved as a draft.", 12, MUTED, false);
         privacy.setGravity(Gravity.CENTER);
         add(page, privacy, 16);
     }
@@ -336,6 +343,8 @@ public final class MainActivity extends FragmentActivity {
         }
         saveDraft();
         hideKeyboard();
+        WeatherSnapshot snapshot = new WeatherRepository(this).current(System.currentTimeMillis());
+        draft.edit().putString("moment_weather", snapshot == null ? null : snapshot.encode()).apply();
         final int token = ++momentGeneration;
         showPrivateDialog(new AlertDialog.Builder(this).setTitle(R.string.moment_heap_prompt)
                 .setMessage(R.string.moment_heap_message)
@@ -423,11 +432,13 @@ public final class MainActivity extends FragmentActivity {
         int savedMood = draft.getInt("mood", 0);
         if (savedMood < 1 || savedMood > 5) return;
         try {
-            store.add(savedMood, draft.getString("event", ""), draft.getString("thoughts", ""), draft.getString("needs", ""), heapId);
+            store.add(savedMood, draft.getString("event", ""), draft.getString("thoughts", ""), draft.getString("needs", ""), heapId,
+                    draft.getInt("weather_answer", 0), WeatherSnapshot.decode(draft.getString("moment_weather", null)));
             cancelPendingMoment();
             draft.edit().clear().apply();
             mood = 0;
             event = thoughts = needs = null;
+            weatherAnswers = null;
             hideKeyboard();
             journals.openDestination(heapId);
             showJournal();
@@ -491,7 +502,12 @@ public final class MainActivity extends FragmentActivity {
         detail(content, "What was on your mind", entry.event());
         detail(content, "Thoughts & feelings", entry.thoughts());
         detail(content, "What you needed", entry.needs());
-        if (entry.event().isEmpty() && entry.thoughts().isEmpty() && entry.needs().isEmpty())
+        if (entry.weather() != null) {
+            detail(content, "Weather on " + entry.weather().date(), entry.weather().summary(WeatherReflection.fahrenheit(this)));
+            detail(content, "Weather source", entry.weather().attribution());
+        }
+        if (entry.weatherAnswer() != 0) detail(content, WeatherReflection.QUESTION, WeatherReflection.ANSWERS[entry.weatherAnswer()]);
+        if (entry.event().isEmpty() && entry.thoughts().isEmpty() && entry.needs().isEmpty() && entry.weatherAnswer() == 0)
             add(content, text("You took a moment to notice how you felt.", 16, INK, false), 20);
         ScrollView scroll = new ScrollView(this);
         scroll.addView(content);
@@ -534,7 +550,8 @@ public final class MainActivity extends FragmentActivity {
         draft.edit().putInt("mood", mood).putInt("prompt", promptIndex)
                 .putString("event", event.getText().toString())
                 .putString("thoughts", thoughts.getText().toString())
-                .putString("needs", needs.getText().toString()).apply();
+                .putString("needs", needs.getText().toString())
+                .putInt("weather_answer", WeatherReflection.answer(weatherAnswers)).apply();
     }
 
     @Override protected void onPause() {
@@ -542,6 +559,7 @@ public final class MainActivity extends FragmentActivity {
         momentGeneration++;
         backup.onPause();
         exports.onPause();
+        weather.onPause();
         journalUnlocked = false;
         gate.lock();
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
@@ -552,6 +570,7 @@ public final class MainActivity extends FragmentActivity {
         super.onResume();
         if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN && !journalUnlocked) showPrivateTab();
         reminders.onResume();
+        weather.onResume();
     }
 
     @Override protected void onNewIntent(Intent intent) {
@@ -560,7 +579,7 @@ public final class MainActivity extends FragmentActivity {
         if (!ReminderScheduler.OPEN_CHECK_IN.equals(intent.getAction())) return;
         saveDraft(); cancelPendingMoment(); hideKeyboard();
         if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
-        journalUnlocked = false; gate.lock(); backup.onPause(); exports.onPause(); settingsPage = SettingsScreen.NONE;
+        journalUnlocked = false; gate.lock(); backup.onPause(); exports.onPause(); weather.onPause(); settingsPage = SettingsScreen.NONE;
         intent.setAction(null); showCheckIn();
     }
     @Override protected void onSaveInstanceState(Bundle state) {
@@ -575,7 +594,7 @@ public final class MainActivity extends FragmentActivity {
         exports.saveState(state);
         super.onSaveInstanceState(state);
     }
-    @Override protected void onDestroy() { gate.close(); backup.close(); exports.close(); store.close(); super.onDestroy(); }
+    @Override protected void onDestroy() { gate.close(); backup.close(); exports.close(); weather.close(); store.close(); super.onDestroy(); }
 
     private void hideKeyboard() {
         View focused = getCurrentFocus();

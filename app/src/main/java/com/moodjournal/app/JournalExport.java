@@ -22,7 +22,7 @@ final class JournalExport {
     private static final String[] MOODS = {"", "Low", "Down", "Okay", "Good", "Great"};
 
     static boolean hasWriting(JournalStore.Entry entry) {
-        return !entry.event().trim().isEmpty() || !entry.thoughts().trim().isEmpty() || !entry.needs().trim().isEmpty();
+        return !entry.event().trim().isEmpty() || !entry.thoughts().trim().isEmpty() || !entry.needs().trim().isEmpty() || entry.weatherAnswer() != 0;
     }
 
     static String entryFilename(JournalStore.Entry entry) {
@@ -37,6 +37,9 @@ final class JournalExport {
     }
 
     static void writeZip(OutputStream output, List<JournalStore.Entry> entries, JournalHeap heap) throws IOException {
+        writeZip(output, entries, heap, false);
+    }
+    static void writeZip(OutputStream output, List<JournalStore.Entry> entries, JournalHeap heap, boolean fahrenheit) throws IOException {
         if (entries.stream().noneMatch(JournalExport::hasWriting)) throw new IOException("Nothing to export");
         try (ZipOutputStream zip = new ZipOutputStream(new java.io.FilterOutputStream(output) {
             @Override public void write(byte[] bytes, int offset, int length) throws IOException { out.write(bytes, offset, length); }
@@ -45,13 +48,16 @@ final class JournalExport {
             for (JournalStore.Entry entry : entries) {
                 if (!hasWriting(entry)) continue;
                 zip.putNextEntry(new ZipEntry(entryFilename(entry)));
-                writePdf(zip, java.util.Collections.singletonList(entry), heap);
+                writePdf(zip, java.util.Collections.singletonList(entry), heap, fahrenheit);
                 zip.closeEntry();
             }
         }
     }
 
     static void writePdf(OutputStream output, List<JournalStore.Entry> entries, JournalHeap heap) throws IOException {
+        writePdf(output, entries, heap, false);
+    }
+    static void writePdf(OutputStream output, List<JournalStore.Entry> entries, JournalHeap heap, boolean fahrenheit) throws IOException {
         if (entries.stream().noneMatch(JournalExport::hasWriting)) throw new IOException("Nothing to export");
         PdfDocument document = new PdfDocument();
         try {
@@ -76,6 +82,11 @@ final class JournalExport {
                     pages.section("What was on your mind", entry.event());
                     pages.section("Thoughts & feelings", entry.thoughts());
                     pages.section("What you needed", entry.needs());
+                    if (entry.weather() != null) {
+                        pages.section("Weather on " + entry.weather().date(), entry.weather().summary(fahrenheit));
+                        pages.gap(8); pages.text(entry.weather().attribution(), 10, false, false, 0xFF6D6470);
+                    }
+                    if (entry.weatherAnswer() != 0) pages.section(WeatherReflection.QUESTION, WeatherReflection.ANSWERS[entry.weatherAnswer()]);
                 }
             } finally { pages.finish(); }
             document.writeTo(output);

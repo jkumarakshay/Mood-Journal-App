@@ -1,11 +1,45 @@
 <resources>
+    <string name="settings_weather">Weather</string>
+    <string name="weather_celsius">Celsius (°C)</string>
+    <string name="weather_fahrenheit">Fahrenheit (°F)</string>
+    <string name="weather_units_description">Choose the temperature unit for the daily forecast, your journal, and PDF exports. Celsius is the default.</string>
+    <string name="weather_no_location">Choose a location for your weather.</string>
+    <string name="weather_use_location">Use current location</string>
+    <string name="weather_choose_city">Choose city</string>
+    <string name="weather_refresh">Refresh weather</string>
+    <string name="weather_privacy">Weather uses the location you choose. Update it when you travel. A city search or rounded coordinates go to Open-Meteo; journal text, moods, and answers stay private. Location is only requested while using this screen. You can journal without weather or location permission.</string>
+    <string name="weather_attribution">Weather by Open-Meteo · CC BY 4.0\nDaily forecast, with simplified descriptions. Tap for source and license.</string>
+    <string name="weather_setup">Local weather\nTap to choose a location</string>
+    <string name="weather_loading">Loading today’s weather…</string>
+    <string name="weather_unavailable">Weather unavailable\nTap to retry or choose a city</string>
+    <string name="weather_open_settings">Open Weather settings</string>
+    <string name="weather_permission_denied">Location permission was not granted. You can choose a city instead.</string>
+    <string name="weather_fetch_failed">Couldn’t get today’s weather. Check your connection and try Refresh weather. You can still save your journal.</string>
+    <string name="weather_cached">Couldn’t refresh. Showing the saved forecast for today.</string>
+    <string name="weather_updated">Today’s forecast is ready.</string>
+    <string name="weather_city_hint">Enter a city name (at least 2 characters)</string>
+    <string name="weather_search">Search</string>
+    <string name="weather_searching">Searching cities…</string>
+    <string name="weather_no_matches">No matching cities. Try a nearby city or add a country.</string>
+    <string name="weather_city_failed">Couldn’t search cities. Check your connection and try again.</string>
+    <string name="weather_locating">Finding your approximate location…</string>
+    <string name="weather_location_failed">Couldn’t get your location. Turn on device location and try again, or choose a city.</string>
+    <string name="weather_current_location">Current location</string>
+    <string name="weather_question">Did the weather today contribute to how you feel today?</string>
+    <string-array name="weather_answers">
+        <item>Absolutely yes</item>
+        <item>Kinda yeah</item>
+        <item>Did not matter</item>
+        <item>Not really</item>
+        <item>Absolutely not</item>
+    </string-array>
     <string name="journal_more">More options for this journal</string>
     <string name="heap_more">More options for this Heap</string>
     <string name="export_action">Export</string>
     <string name="export_heap_title">Export Heap</string>
     <string name="export_zip">Export as zip</string>
     <string name="export_collated">Export as collated PDF</string>
-    <string name="export_readable_note">Use ⋮ to export written journals as readable PDFs or ZIP files. These files do not use backup encryption. Journals without written answers are excluded.</string>
+    <string name="export_readable_note">Use the three-dot menu to export journals as readable PDFs or ZIP files. These files do not use backup encryption. Journals without writing or a weather answer are excluded.</string>
     <string name="export_saving">Saving your export…</string>
     <string name="export_saved">Export saved to the selected location.</string>
     <string name="export_cancelled">Export cancelled.</string>
@@ -54,7 +88,7 @@
     <string name="settings_about_summary">A quiet place to check in, reflect, and begin again.</string>
     <string name="settings_about_overview">Daily Pause is a private space to check in with your mood, reflect on what’s on your mind, and make room for yourself.</string>
     <string name="settings_about_features">Write freely, organize journals into Heaps, and look back at your mood History to notice patterns over time.</string>
-    <string name="settings_about_privacy">Your saved journals stay on this device unless you choose an encrypted backup. My Journal and History are protected by your PIN or enrolled biometrics.</string>
+    <string name="settings_about_privacy">Your saved journals stay on this device unless you export or choose an encrypted backup. My Journal and History are protected by your PIN or enrolled biometrics. Weather sends your chosen city or rounded coordinates to Open-Meteo; your journal text, moods, and answers are never sent with weather requests.</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_description">Choose the appearance that feels comfortable for you.</string>
     <string name="settings_theme_saved">Your choice is remembered the next time you open Daily Pause.</string>
