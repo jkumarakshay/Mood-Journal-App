@@ -81,9 +81,10 @@ final class JournalScreen {
             Button back = button("← All Heaps & journals", R.id.heap_back);
             back.setOnClickListener(v -> { activeHeap = null; category = null; outsideOnly = false; refresh.run(); });
             add(page, back, 12);
-            LinearLayout title = card(heap.background());
+            LinearLayout title = card(heap.color());
             add(title, optionsRow(text(heap.name(), 24, true), exports.heapMenu(heap, entries)), 0);
             add(title, text(heap.category().isEmpty() ? "Uncategorized" : heap.category(), 14, false), 8);
+            customHeapText(title, heap.color());
             add(page, title, 16);
         } else {
             TreeSet<String> categories = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
@@ -116,13 +117,15 @@ final class JournalScreen {
                     long count = entries.stream().filter(e -> heap.id().equals(e.heapId())).count();
                     Button folder = button("▣  " + heap.name() + "\n" + (heap.category().isEmpty() ? "Uncategorized" : heap.category())
                             + " · " + count + (count == 1 ? " entry" : " entries"), View.NO_ID);
-                    folder.setBackground(shape(heap.background()));
+                    folder.setBackground(heapShape(heap.color()));
+                    if (heap.color() != null && !Appearance.isPresetHeapColor(heap.color())) folder.setTextColor(Appearance.heapInk(activity, heap.color()));
                     folder.setContentDescription("Open Heap " + heap.name() + ", " + count + " entries");
                     folder.setTag(heap.id());
                     folder.setOnClickListener(v -> { activeHeap = heap.id(); refresh.run(); });
-                    LinearLayout folderCard = card(heap.background());
+                    LinearLayout folderCard = card(heap.color());
                     folderCard.setPadding(dp(8), dp(8), dp(8), dp(8));
                     add(folderCard, optionsRow(folder, exports.heapMenu(heap, entries)), 0);
+                    customHeapText(folderCard, heap.color());
                     add(page, folderCard, 10);
                 }
                 if (shown == 0) add(page, text(heaps.isEmpty() ? "Use + to give a topic or concern its own space." : "No Heaps in this category.", 14, false), 10);
@@ -139,7 +142,7 @@ final class JournalScreen {
             if (activeHeap != null ? !activeHeap.equals(entry.heapId())
                     : (outsideOnly && entry.heapId() != null) || !matchesCategory(heap, category)) continue;
             shown++;
-            LinearLayout card = card(heap == null ? Color.WHITE : heap.background());
+            LinearLayout card = card(heap == null ? null : heap.color());
             card.setTag(entry.id());
             add(card, optionsRow(text(heap == null ? "Outside Heaps" : "Heap: " + heap.name(), 14, true), exports.entryMenu(entry, heap)), 0);
             add(card, text(new SimpleDateFormat("MMM d, yyyy  ·  h:mm a", Locale.getDefault()).format(new Date(entry.createdAt())), 12, false), 8);
@@ -152,7 +155,7 @@ final class JournalScreen {
             Button read = button("Read this entry  →", View.NO_ID);
             read.setContentDescription("Read " + MOODS[entry.mood()] + " entry from " + new Date(entry.createdAt()));
             read.setOnClickListener(v -> { if (authorized.getAsBoolean()) openEntry.accept(entry); });
-            add(card, read, 14); add(page, card, 16);
+            add(card, read, 14); if (heap != null) customHeapText(card, heap.color()); add(page, card, 16);
         }
         if (shown == 0) add(page, text("No journals here yet. Use + to add a journal entry.", 15, false), 14);
     }
@@ -196,7 +199,7 @@ final class JournalScreen {
         EditText name = field(form, "Heap name (required)", R.id.heap_name, "", 100, false);
         EditText categoryField = field(form, "Category (optional)", R.id.heap_category, "", 60, false);
         add(form, text("Color profile (optional)", 14, true), 12);
-        Spinner color = spinner(java.util.Arrays.asList(JournalHeap.COLOR_NAMES), R.id.heap_color);
+        HeapColorPicker color = new HeapColorPicker(activity); color.setId(R.id.heap_color);
         add(form, color, 4);
         TextView error = error(form);
         AlertDialog dialog = AppDialogs.builder(activity).setTitle("New Heap").setView(scroll(form))
@@ -205,10 +208,10 @@ final class JournalScreen {
         showDialog.accept(dialog);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             if (!authorized.getAsBoolean()) { dialog.dismiss(); return; }
+            if (!color.isValid()) { error.setText(R.string.heap_color_invalid); color.focusCode(); return; }
             try {
-                int choice = color.getSelectedItemPosition();
                 JournalHeap heap = store.addHeap(name.getText().toString(), categoryField.getText().toString(),
-                        choice == 0 ? null : JournalHeap.COLORS[choice]);
+                        color.getColor());
                 activity.getSharedPreferences("heap_notices", Context.MODE_PRIVATE).edit().putBoolean("created", true).apply();
                 dialog.dismiss(); saved.accept(heap);
             } catch (IllegalArgumentException e) { error.setText(e.getMessage()); name.requestFocus(); }
@@ -315,7 +318,16 @@ final class JournalScreen {
     private ScrollView scroll(LinearLayout form) { ScrollView scroll = new ScrollView(activity); scroll.addView(form); return scroll; }
     private LinearLayout form() { LinearLayout form = column(); form.setPadding(dp(24), dp(12), dp(24), dp(12)); return form; }
     private LinearLayout column() { LinearLayout layout = new LinearLayout(activity); layout.setOrientation(LinearLayout.VERTICAL); return layout; }
-    private LinearLayout card(int color) { LinearLayout card = column(); card.setPadding(dp(18), dp(20), dp(18), dp(20)); card.setBackground(shape(color)); return card; }
+    private LinearLayout card(Integer color) { LinearLayout card = column(); card.setPadding(dp(18), dp(20), dp(18), dp(20)); card.setBackground(heapShape(color)); return card; }
+    private GradientDrawable heapShape(Integer color) { GradientDrawable shape = new GradientDrawable(); shape.setColor(color == null ? Appearance.color(activity, Color.WHITE) : Appearance.heapSurface(activity, color)); shape.setCornerRadius(dp(20)); return shape; }
+    private void customHeapText(View view, Integer color) {
+        if (color == null || Appearance.isPresetHeapColor(color)) return;
+        int ink = Appearance.heapInk(activity, color);
+        if (view instanceof android.widget.ImageButton image) image.setImageTintList(android.content.res.ColorStateList.valueOf(ink));
+        else if (view instanceof Button) return; // Read buttons have their own themed surface.
+        else if (view instanceof TextView text) text.setTextColor(ink);
+        else if (view instanceof android.view.ViewGroup group) for (int i = 0; i < group.getChildCount(); i++) customHeapText(group.getChildAt(i), color);
+    }
     private GradientDrawable shape(int color) { GradientDrawable shape = new GradientDrawable(); shape.setColor(Appearance.color(activity, color)); shape.setCornerRadius(dp(20)); return shape; }
     private TextView text(String value, int size, boolean bold) {
         TextView text = new TextView(activity); text.setText(value); text.setTextSize(size); text.setTextColor(Appearance.color(activity, INK));

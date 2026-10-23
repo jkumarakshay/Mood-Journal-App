@@ -73,11 +73,13 @@ public final class MainActivity extends FragmentActivity {
     private AnalysisScreen analysis;
     private int analyticsMode;
     private PopupMenu analyticsMenu;
+    private OnboardingState onboarding;
 
     @Override public void onCreate(Bundle state) {
         Appearance.apply(this);
         super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        onboarding = new OnboardingState(this);
         store = new JournalStore(this);
         draft = getSharedPreferences("draft", MODE_PRIVATE);
         gate = new JournalGate(this, new PinLock(this), JournalGate.systemBiometrics(this), () -> {
@@ -121,6 +123,13 @@ public final class MainActivity extends FragmentActivity {
             settingsPage = SettingsScreen.NONE; restoredTab = CHECK_IN; getIntent().setAction(null);
         }
         if (restoredTab != JOURNAL) cancelPendingMoment();
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(onboarding.active()) {
+            @Override public void handleOnBackPressed() {
+                // Keep progress until an explicit Next or Skip tour action.
+                if (!onboarding.active()) { setEnabled(false); getOnBackPressedDispatcher().onBackPressed(); }
+            }
+        });
+        if (onboarding.active()) { showOnboarding(); return; }
         currentTab = restoredTab;
         if (settingsPage != SettingsScreen.NONE) showSettings();
         else if (restoredTab == HISTORY) showHistory();
@@ -194,12 +203,16 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void openTab(int tab) {
+        if (onboarding.active()) return;
         if (currentTab == tab && settingsPage == SettingsScreen.NONE) return;
         saveDraft();
         dismissAnalyticsMenu(); analysis.onLeave();
         settingsPage = SettingsScreen.NONE;
         cancelPendingMoment();
-        if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
+        if (privateDialog != null) {
+            privateDialog.dismiss();
+            privateDialog = null;
+        }
         hideKeyboard();
         journalUnlocked = false;
         gate.lock();
@@ -215,11 +228,15 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void openSettings(int target) {
+        if (onboarding.active()) return;
         saveDraft();
         dismissAnalyticsMenu(); analysis.onLeave();
         cancelPendingMoment();
         hideKeyboard();
-        if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
+        if (privateDialog != null) {
+            privateDialog.dismiss();
+            privateDialog = null;
+        }
         journalUnlocked = false;
         gate.lock();
         backup.onPause(); exports.onPause(); weather.onPause();
@@ -254,6 +271,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void showAnalyticsMenu(View anchor) {
+        if (onboarding.active()) return;
         if (!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
         dismissAnalyticsMenu();
         analyticsMenu = new PopupMenu(this, anchor, Gravity.END);
@@ -267,7 +285,10 @@ public final class MainActivity extends FragmentActivity {
     }
     private void openAnalytics(int mode) {
         dismissAnalyticsMenu(); analysis.onLeave();
-        if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
+        if (privateDialog != null) {
+            privateDialog.dismiss();
+            privateDialog = null;
+        }
         analyticsMode = mode;
         if (currentTab == HISTORY && settingsPage == SettingsScreen.NONE) showHistory(); else openTab(HISTORY);
     }
@@ -285,7 +306,9 @@ public final class MainActivity extends FragmentActivity {
         add(page, text("You don’t have to make sense of everything.\nStart with how you feel.", 15, MUTED, false), 10);
 
         LinearLayout moodCard = card(Color.rgb(237, 230, 241));
-        add(moodCard, text("How are you feeling?", 20, INK, true), 0);
+        TextView emotionHeading = text("How are you feeling?", 20, INK, true);
+        emotionHeading.setId(R.id.emotion_section);
+        add(moodCard, emotionHeading, 0);
         add(moodCard, text("Every feeling is welcome here.", 13, MUTED, false), 6);
         LinearLayout choices = new LinearLayout(this);
         for (int i = 0; i < 5; i++) {
@@ -305,7 +328,9 @@ public final class MainActivity extends FragmentActivity {
         updateMoods();
 
         LinearLayout writing = card(Color.WHITE);
-        add(writing, text("Let it out", 23, INK, true), 0);
+        TextView writingHeading = text("Let it out", 23, INK, true);
+        writingHeading.setId(R.id.writing_section);
+        add(writing, writingHeading, 0);
         add(writing, text("Write a little or a lot. These prompts are here to help; every field is optional.", 14, MUTED, false), 8);
         TextView prompt = text(PROMPTS[promptIndex], 16, INK, true);
         add(writing, prompt, 22);
@@ -357,7 +382,9 @@ public final class MainActivity extends FragmentActivity {
                 .setNegativeButton(R.string.mood_response_later, null)
                 .setPositiveButton(R.string.mood_response_journal, (dialog, which) -> reflection.post(() -> {
                     if (settingsPage != SettingsScreen.NONE || currentTab != CHECK_IN || event != reflection || mood != selected
-                            || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
+                            || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+                        return;
+                    }
                     reflection.requestFocus();
                     reflection.requestRectangleOnScreen(new android.graphics.Rect(0, 0, reflection.getWidth(), reflection.getHeight()), true);
                     ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(reflection, InputMethodManager.SHOW_IMPLICIT);
@@ -365,6 +392,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void saveEntry() {
+        if (onboarding.active()) return;
         if (settingsPage != SettingsScreen.NONE || currentTab != CHECK_IN || event == null) return;
         if (mood == 0) {
             Toast.makeText(this, "Choose the mood that feels closest first.", Toast.LENGTH_LONG).show();
@@ -576,7 +604,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void saveDraft() {
-        if (settingsPage != SettingsScreen.NONE || currentTab != CHECK_IN || event == null) return;
+        if (onboarding.active() || settingsPage != SettingsScreen.NONE || currentTab != CHECK_IN || event == null) return;
         draft.edit().putInt("mood", mood).putInt("prompt", promptIndex)
                 .putString("event", event.getText().toString())
                 .putString("thoughts", thoughts.getText().toString())
@@ -592,12 +620,16 @@ public final class MainActivity extends FragmentActivity {
         weather.onPause();
         journalUnlocked = false;
         gate.lock();
-        if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
-        if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN) showPrivateTab();
+        if (privateDialog != null) {
+            privateDialog.dismiss();
+            privateDialog = null;
+        }
+        if (!onboarding.active() && settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN) showPrivateTab();
         super.onPause();
     }
     @Override protected void onResume() {
         super.onResume();
+        if (onboarding.active()) return;
         if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN && !journalUnlocked) showPrivateTab();
         reminders.onResume();
         weather.onResume();
@@ -609,9 +641,13 @@ public final class MainActivity extends FragmentActivity {
         if (!ReminderScheduler.OPEN_CHECK_IN.equals(intent.getAction())) return;
         saveDraft(); cancelPendingMoment(); hideKeyboard();
         dismissAnalyticsMenu(); analysis.onLeave();
-        if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
+        if (privateDialog != null) {
+            privateDialog.dismiss();
+            privateDialog = null;
+        }
         journalUnlocked = false; gate.lock(); backup.onPause(); exports.onPause(); weather.onPause(); settingsPage = SettingsScreen.NONE;
-        intent.setAction(null); showCheckIn();
+        intent.setAction(null);
+        if (onboarding.active()) showOnboarding(); else showCheckIn();
     }
     @Override protected void onSaveInstanceState(Bundle state) {
         saveDraft();
@@ -627,6 +663,108 @@ public final class MainActivity extends FragmentActivity {
         super.onSaveInstanceState(state);
     }
     @Override protected void onDestroy() { gate.close(); backup.close(); exports.close(); weather.close(); analysis.close(); store.close(); super.onDestroy(); }
+
+    private void showOnboarding() {
+        settingsPage = SettingsScreen.NONE;
+        journalUnlocked = false;
+        gate.lock();
+        hideKeyboard();
+        final int step = onboarding.step();
+        if (step == OnboardingState.WELCOME) { showWelcome(); return; }
+        if (step <= 4) showCheckIn();
+        else showTourPreview(step);
+        View root = findViewById(R.id.app_root);
+        // A modal overlay also hides the underlying controls from TalkBack navigation.
+        root.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        ((LinearLayout) root).setDescendantFocusability(android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        int[] targets = {R.id.checkin_tab, R.id.emotion_section, R.id.writing_section,
+                R.id.weather_summary, R.id.journal_tab, R.id.journal_add, R.id.history_tab};
+        View target = step < targets.length ? findViewById(targets[step]) : null;
+        if (step == 1 || step == 2) {
+            LinearLayout tourPage = page;
+            // Run before drawing, after section sizes and window insets are available.
+            root.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+                @Override public boolean onPreDraw() {
+                    root.getViewTreeObserver().removeOnPreDrawListener(this);
+                    if (target != null && page == tourPage && onboarding.step() == step) {
+                        ScrollView scroll = (ScrollView) tourPage.getParent();
+                        android.graphics.Rect rect = new android.graphics.Rect();
+                        target.getDrawingRect(rect); tourPage.offsetDescendantRectToMyCoords(target, rect);
+                        scroll.scrollTo(0, Math.max(0, rect.top - dp(20)));
+                    }
+                    return true;
+                }
+            });
+        }
+        TourOverlay overlay = new TourOverlay(this, target, step, () -> {
+            if (onboarding.step() != step) return; // Ignore a stale or double-tapped Next.
+            onboarding.next();
+            if (onboarding.active()) showOnboarding(); else finishOnboarding();
+        }, this::finishOnboarding);
+        addContentView(overlay, new android.view.ViewGroup.LayoutParams(-1, -1));
+        overlay.requestFocus();
+    }
+
+    private void showWelcome() {
+        // Reuse the app frame's insets, but remove navigation for this first-launch page.
+        frame(CHECK_IN);
+        LinearLayout root = findViewById(R.id.app_root);
+        root.removeViewAt(2); root.removeViewAt(0);
+        page.removeAllViews();
+        add(page, text(getString(R.string.welcome_eyebrow), 11, PURPLE, true), 16);
+        TextView heading = text(getString(R.string.welcome_title), 38, INK, false);
+        heading.setId(R.id.welcome_title); heading.setTypeface(Typeface.create("serif", Typeface.NORMAL));
+        add(page, heading, 24);
+        add(page, text(getString(R.string.welcome_overview), 17, MUTED, false), 16);
+        LinearLayout purpose = card(Color.rgb(237, 230, 241));
+        add(purpose, text(getString(R.string.welcome_checkin), 18, INK, true), 0);
+        add(purpose, text(getString(R.string.welcome_journal), 16, INK, false), 18);
+        add(purpose, text(getString(R.string.welcome_patterns), 16, INK, false), 18);
+        add(page, purpose, 28);
+        add(page, text(getString(R.string.welcome_privacy), 13, MUTED, false), 22);
+        LinearLayout actions = column(); actions.setPadding(dp(24), dp(12), dp(24), dp(20));
+        Button tour = button(getString(R.string.welcome_tour), true); tour.setId(R.id.welcome_tour);
+        tour.setOnClickListener(v -> { onboarding.start(); showOnboarding(); }); add(actions, tour, 0);
+        Button thanks = button(getString(R.string.welcome_thanks), false); thanks.setId(R.id.welcome_thanks);
+        thanks.setOnClickListener(v -> finishOnboarding()); add(actions, thanks, 8);
+        root.addView(actions);
+    }
+
+    /** Empty, inert previews never read journal data or change the authentication state. */
+    private void showTourPreview(int step) {
+        frame(step <= 6 ? JOURNAL : HISTORY);
+        add(page, text(getString(R.string.tour_preview), 12, PURPLE, true), 0);
+        TextView title = text(getString(step <= 6 ? R.string.tour_journal_title
+                : step == 7 ? R.string.mood_graph : R.string.mood_analysis), 36, INK, false);
+        title.setTypeface(Typeface.create("serif", Typeface.NORMAL)); add(page, title, 16);
+        if (step <= 6) {
+            add(page, text(getString(R.string.tour_preview_private), 15, MUTED, false), 12);
+            Button plus = button("+", false); plus.setId(R.id.journal_add);
+            plus.setContentDescription(getString(R.string.tour_add_title)); add(page, plus, 20);
+            LinearLayout empty = card(Color.rgb(232, 237, 225));
+            add(empty, text(getString(R.string.tour_preview_empty), 20, INK, true), 0);
+            add(page, empty, 24);
+        } else if (step == 7) {
+            MoodChartView graph = new MoodChartView(this); graph.setId(R.id.mood_chart); add(page, graph, 24);
+            add(page, text(getString(R.string.tour_preview_graph), 15, MUTED, false), 16);
+        } else {
+            for (int label : new int[]{R.string.tour_preview_weather, R.string.tour_preview_responses, R.string.tour_preview_time}) {
+                LinearLayout section = card(Color.WHITE);
+                add(section, text(getString(label), 18, INK, true), 0); add(page, section, 16);
+            }
+            add(page, text(getString(R.string.tour_preview_analysis), 15, MUTED, false), 16);
+        }
+    }
+
+    private void finishOnboarding() {
+        onboarding.finish();
+        // Clear preview navigation and return to the user's first real check-in.
+        analyticsMode = 0; settingsPage = SettingsScreen.NONE;
+        showCheckIn();
+        if (getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+            reminders.onResume(); weather.onResume();
+        }
+    }
 
     private void hideKeyboard() {
         View focused = getCurrentFocus();

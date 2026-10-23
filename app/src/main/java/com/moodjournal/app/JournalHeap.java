@@ -12,9 +12,7 @@ record JournalHeap(String id, String name, String category, Integer color) {
             throw new IllegalArgumentException("Give your Heap a name (up to 100 characters).");
         if (category == null || category.length() > 60)
             throw new IllegalArgumentException("Use a category of up to 60 characters.");
-        boolean supported = color == null;
-        for (int i = 1; i < COLORS.length; i++) supported |= color != null && color == COLORS[i];
-        if (!supported) throw new IllegalArgumentException("Choose a color profile");
+        if (color != null && (color >>> 24) != 255) throw new IllegalArgumentException("Choose an opaque RGB color");
         name = name.trim();
         category = category.trim();
     }

@@ -44,7 +44,7 @@ public class HeapScreenTest {
             assertTrue(text(dialog(), "Give your Heap a name"));
             ((EditText) dialog().findViewById(R.id.heap_name)).setText("Work worries");
             ((EditText) dialog().findViewById(R.id.heap_category)).setText("Career");
-            ((Spinner) dialog().findViewById(R.id.heap_color)).setSelection(2);
+            ((HeapColorPicker) dialog().findViewById(R.id.heap_color)).setColor(JournalHeap.COLORS[2]);
             click(AlertDialog.BUTTON_POSITIVE);
             JournalHeap heap = store.heaps().get(0);
             assertEquals("Work worries", heap.name()); assertEquals("Career", heap.category());

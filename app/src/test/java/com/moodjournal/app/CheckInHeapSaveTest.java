@@ -84,7 +84,7 @@ public class CheckInHeapSaveTest {
             assertTrue(dialog().isShowing()); assertTrue(store.heaps().isEmpty()); assertTrue(store.all().isEmpty()); assertDraftStored();
             ((EditText) dialog().findViewById(R.id.heap_name)).setText("Personal growth");
             ((EditText) dialog().findViewById(R.id.heap_category)).setText("Life");
-            ((Spinner) dialog().findViewById(R.id.heap_color)).setSelection(2);
+            ((HeapColorPicker) dialog().findViewById(R.id.heap_color)).setColor(JournalHeap.COLORS[2]);
             click(AlertDialog.BUTTON_POSITIVE);
             JournalHeap heap = store.heaps().get(0);
             assertEquals("Personal growth", heap.name()); assertEquals("Life", heap.category());

@@ -2,6 +2,8 @@ package com.moodjournal.app;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
+import androidx.core.graphics.ColorUtils;
 
 /** Explicit app appearance, independent of the device theme. Stored Heap colors stay unchanged. */
 final class Appearance {
@@ -18,6 +20,24 @@ final class Appearance {
     }
 
     static int onAccent(Context context) { return isDark(context) ? 0xFF2C1737 : 0xFFFFFFFF; }
+
+    static boolean isPresetHeapColor(int rgb) {
+        for (int i = 1; i < JournalHeap.COLORS.length; i++) if (JournalHeap.COLORS[i] == rgb) return true;
+        return false;
+    }
+
+    static int heapSurface(Context context, int rgb) {
+        // Existing pastel profiles keep their dark variants. Custom RGB stays exact.
+        return isPresetHeapColor(rgb) ? color(context, rgb) : rgb;
+    }
+
+    static int heapInk(Context context, int rgb) {
+        int background = heapSurface(context, rgb), normal = color(context, 0xFF312B35);
+        if (ColorUtils.calculateContrast(normal, background) >= 4.5) return normal;
+        int alternate = isDark(context) ? 0xFF312B35 : 0xFFF4EEF5;
+        if (ColorUtils.calculateContrast(alternate, background) >= 4.5) return alternate;
+        return ColorUtils.calculateContrast(Color.BLACK, background) > ColorUtils.calculateContrast(Color.WHITE, background) ? Color.BLACK : Color.WHITE;
+    }
 
     static int color(Context context, int light) {
         if (!isDark(context)) return light;

@@ -1,4 +1,26 @@
 <resources>
+    <item name="welcome_title" type="id" />
+    <item name="welcome_tour" type="id" />
+    <item name="welcome_thanks" type="id" />
+    <item name="emotion_section" type="id" />
+    <item name="writing_section" type="id" />
+    <item name="tour_overlay" type="id" />
+    <item name="tour_title" type="id" />
+    <item name="tour_body" type="id" />
+    <item name="tour_next" type="id" />
+    <item name="tour_skip" type="id" />
+    <item name="heap_color_preview" type="id" />
+    <item name="heap_color_toggle" type="id" />
+    <item name="heap_color_wheel" type="id" />
+    <item name="heap_color_brightness" type="id" />
+    <item name="heap_color_hex" type="id" />
+    <item name="heap_color_error" type="id" />
+    <item name="heap_color_lavender" type="id" />
+    <item name="heap_color_sage" type="id" />
+    <item name="heap_color_peach" type="id" />
+    <item name="heap_color_sky" type="id" />
+    <item name="heap_color_rose" type="id" />
+    <item name="heap_color_default" type="id" />
     <item name="popup_title" type="id" />
     <item name="analytics_selector" type="id" />
     <item name="analytics_graph" type="id" />

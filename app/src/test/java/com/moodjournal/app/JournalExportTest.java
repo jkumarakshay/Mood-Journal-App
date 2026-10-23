@@ -27,6 +27,12 @@ public class JournalExportTest {
     private JournalStore.Entry entry(long id, String text) { return new JournalStore.Entry(id, 1792713600000L, 4, text, "Feeling hopeful.", "Some rest.", heap.id()); }
     private JournalStore.Entry empty() { return new JournalStore.Entry(10, 1792713600000L, 3, " \n", "", "\t", heap.id()); }
 
+    @Test public void customHeapRgbIsUsedInExportAccent() throws Exception {
+        JournalHeap custom=new JournalHeap(heap.id(),"Custom","Life",0xFF123456);
+        JournalExport.writePdf(new ByteArrayOutputStream(),List.of(entry(1,"A thought")),custom);
+        assertEquals(0xFF123456,RecordingPdfDocument.last().images.get(0).getPixel(60,45));
+    }
+
     @Test public void singleJournalRendersOneA4PageAndCompletesTheDocument() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         JournalExport.writePdf(output, List.of(entry(1, "A small win today.")), heap);
