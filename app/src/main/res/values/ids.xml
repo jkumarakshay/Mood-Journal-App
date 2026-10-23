@@ -1,4 +1,9 @@
 <resources>
+    <item name="settings_notification" type="id" />
+    <item name="reminder_time" type="id" />
+    <item name="reminder_change_time" type="id" />
+    <item name="reminder_status" type="id" />
+    <item name="reminder_allow" type="id" />
     <item name="settings_button" type="id" />
     <item name="settings_back" type="id" />
     <item name="settings_title" type="id" />

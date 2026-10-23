@@ -44,6 +44,8 @@ public class BackupControllerTest {
 
     @Before public void reset() {
         context = RuntimeEnvironment.getApplication();
+        // Keep file-picker assertions independent of the first-run notification prompt.
+        Shadows.shadowOf(RuntimeEnvironment.getApplication()).grantPermissions(android.Manifest.permission.POST_NOTIFICATIONS);
         context.deleteDatabase("journal.db");
         for (String name : new String[]{"draft", "journal_lock", "backup_notices"}) context.getSharedPreferences(name, 0).edit().clear().commit();
         File[] cache = context.getCacheDir().listFiles();

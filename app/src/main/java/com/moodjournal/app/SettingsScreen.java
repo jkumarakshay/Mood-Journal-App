@@ -14,18 +14,19 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 final class SettingsScreen {
-    static final int NONE = 0, HOME = 1, ABOUT = 2, THEME = 3;
+    static final int NONE = 0, HOME = 1, ABOUT = 2, THEME = 3, NOTIFICATION = 4;
     private final FragmentActivity activity;
     private final IntConsumer navigate;
     private final Consumer<Boolean> changeTheme;
+    private final ReminderController reminders;
 
-    SettingsScreen(FragmentActivity activity, IntConsumer navigate, Consumer<Boolean> changeTheme) {
-        this.activity = activity; this.navigate = navigate; this.changeTheme = changeTheme;
+    SettingsScreen(FragmentActivity activity, IntConsumer navigate, Consumer<Boolean> changeTheme, ReminderController reminders) {
+        this.activity = activity; this.navigate = navigate; this.changeTheme = changeTheme; this.reminders = reminders;
     }
 
     void show(LinearLayout page, int screen) {
         TextView title = label(activity.getString(screen == ABOUT ? R.string.settings_about_title
-                : screen == THEME ? R.string.settings_theme : R.string.settings_title), 36);
+                : screen == THEME ? R.string.settings_theme : screen == NOTIFICATION ? R.string.settings_notification : R.string.settings_title), 36);
         title.setId(R.id.settings_title);
         title.setTypeface(Typeface.create("serif", Typeface.NORMAL));
         add(page, title, 0);
@@ -33,6 +34,8 @@ final class SettingsScreen {
             add(page, label(activity.getString(R.string.settings_about_overview), 17), 22);
             add(page, label(activity.getString(R.string.settings_about_features), 16), 18);
             add(page, label(activity.getString(R.string.settings_about_privacy), 15), 18);
+        } else if (screen == NOTIFICATION) {
+            reminders.show(page);
         } else if (screen == THEME) {
             add(page, label(activity.getString(R.string.settings_theme_description), 16), 16);
             RadioGroup choices = new RadioGroup(activity);
@@ -61,6 +64,8 @@ final class SettingsScreen {
             add(page, label(activity.getString(R.string.settings_about_summary), 14), 8);
             add(page, link(R.string.settings_theme, R.id.settings_theme, THEME), 24);
             add(page, label(activity.getString(Appearance.isDark(activity) ? R.string.theme_dark : R.string.theme_light), 14), 8);
+            add(page, link(R.string.settings_notification, R.id.settings_notification, NOTIFICATION), 24);
+            add(page, label(activity.getString(R.string.reminder_settings_summary), 14), 8);
         }
     }
 

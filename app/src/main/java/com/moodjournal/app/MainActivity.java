@@ -2,6 +2,7 @@ package com.moodjournal.app;
 
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -65,6 +66,7 @@ public final class MainActivity extends FragmentActivity {
     private int settingsPage = SettingsScreen.NONE;
     private SettingsScreen settings;
     private OnBackPressedCallback settingsBack;
+    private ReminderController reminders;
 
     @Override public void onCreate(Bundle state) {
         Appearance.apply(this);
@@ -84,22 +86,27 @@ public final class MainActivity extends FragmentActivity {
                 () -> settingsPage == SettingsScreen.NONE && currentTab == JOURNAL && journalUnlocked, this::showJournal);
         journals = new JournalScreen(this, store, state, () -> settingsPage == SettingsScreen.NONE && currentTab == JOURNAL && journalUnlocked,
                 this::showPrivateDialog, this::showEntry, this::showJournal);
+        reminders = new ReminderController(this, this::showPrivateDialog,
+                () -> settingsPage == SettingsScreen.NOTIFICATION, this::showSettings);
         settings = new SettingsScreen(this, this::openSettings, dark -> {
             saveDraft();
             Appearance.setDark(this, dark);
             recreate();
-        });
+        }, reminders);
         settingsBack = new OnBackPressedCallback(false) {
             @Override public void handleOnBackPressed() { backFromSettings(); }
         };
         getOnBackPressedDispatcher().addCallback(this, settingsBack);
         settingsPage = state == null ? SettingsScreen.NONE : state.getInt("settings_page", SettingsScreen.NONE);
-        if (settingsPage < SettingsScreen.NONE || settingsPage > SettingsScreen.THEME) settingsPage = SettingsScreen.NONE;
+        if (settingsPage < SettingsScreen.NONE || settingsPage > SettingsScreen.NOTIFICATION) settingsPage = SettingsScreen.NONE;
         mood = draft.getInt("mood", 0);
         pendingMoment = state != null && state.getBoolean("pending_moment") && mood != 0;
         createHeapForMoment = pendingMoment && state.getBoolean("create_heap_for_moment");
         promptIndex = draft.getInt("prompt", 0) % PROMPTS.length;
         int restoredTab = state == null ? CHECK_IN : state.getInt("tab", state.getBoolean("journal") ? JOURNAL : CHECK_IN);
+        if (ReminderScheduler.OPEN_CHECK_IN.equals(getIntent().getAction())) {
+            settingsPage = SettingsScreen.NONE; restoredTab = CHECK_IN; getIntent().setAction(null);
+        }
         if (restoredTab != JOURNAL) cancelPendingMoment();
         currentTab = restoredTab;
         if (settingsPage != SettingsScreen.NONE) showSettings();
@@ -536,6 +543,17 @@ public final class MainActivity extends FragmentActivity {
     @Override protected void onResume() {
         super.onResume();
         if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN && !journalUnlocked) showPrivateTab();
+        reminders.onResume();
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (!ReminderScheduler.OPEN_CHECK_IN.equals(intent.getAction())) return;
+        saveDraft(); cancelPendingMoment(); hideKeyboard();
+        if (privateDialog != null) { privateDialog.dismiss(); privateDialog = null; }
+        journalUnlocked = false; gate.lock(); backup.onPause(); settingsPage = SettingsScreen.NONE;
+        intent.setAction(null); showCheckIn();
     }
     @Override protected void onSaveInstanceState(Bundle state) {
         saveDraft();

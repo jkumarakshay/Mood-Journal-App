@@ -1,4 +1,40 @@
 <resources>
+    <string name="app_name">Daily Pause</string>
+    <string name="settings_notification">Notification</string>
+    <string name="reminder_settings_summary">Choose a time for your daily check-in.</string>
+    <string name="reminder_description">A little nudge to check in with yourself, every day. Pick a time that works for you.</string>
+    <string name="reminder_daily_time">Every day at %1$s</string>
+    <string name="reminder_change_time">Change time</string>
+    <string name="reminder_allowed">Your daily check-in reminder is scheduled.</string>
+    <string name="reminder_permission_needed">Allow notifications in Android so Daily Pause can send your daily check-in reminder.</string>
+    <string name="reminder_allow">Allow notifications</string>
+    <string name="reminder_clock_note">Uses your device’s local time. Android may deliver the reminder a little later while saving battery.</string>
+    <string name="reminder_channel">Daily check-ins</string>
+    <string name="reminder_channel_description">A daily reminder to pause and check in with yourself.</string>
+    <string name="reminder_title">A moment for you</string>
+    <string name="reminder_public_text">Time for a little check-in.</string>
+    <string-array name="check_in_reminders">
+        <item>Hey, how’s your day landing? Take a little pause.</item>
+        <item>Tiny check-in? One mood is plenty.</item>
+        <item>You made it through today. How are you feeling?</item>
+        <item>Got a minute for yourself? Your journal is here.</item>
+        <item>Brain feeling full? Leave a few thoughts here.</item>
+        <item>Good day, weird day, rough day—there’s room for it.</item>
+        <item>No perfect words needed. Start with a feeling.</item>
+        <item>A little pause, just for you. Want to check in?</item>
+        <item>Anything on your mind? Let it out for a minute.</item>
+        <item>How are you doing, really? A few words can be enough.</item>
+        <item>Small wins count too. What stood out today?</item>
+        <item>Take a breath. What do you need right now?</item>
+        <item>Give your thoughts a little space. Your journal is here.</item>
+        <item>Quick vibe check? Pick the mood that fits.</item>
+        <item>Some days are a lot. You can keep this one simple.</item>
+        <item>Something worth remembering? Leave future you a note.</item>
+        <item>No rush, no judgement. Just a moment to notice.</item>
+        <item>Checking in with yourself counts as showing up.</item>
+        <item>A few lines, or just a mood. Your call.</item>
+        <item>Hey you. Make a little room for how you feel.</item>
+    </string-array>
     <string name="settings_title">Settings</string>
     <string name="settings_description">A little space to make Daily Pause yours.</string>
     <string name="settings_about">About</string>
