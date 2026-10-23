@@ -1,0 +1,60 @@
+<resources>
+    <attr name="popupOutlineColor" format="color" />
+    <attr name="popupSoftColor" format="color" />
+    <attr name="popupOnAccentColor" format="color" />
+
+    <!-- This overlay inherits the selected app palette, including in dark mode. -->
+    <style name="AppPopupDialog" parent="android:style/ThemeOverlay.Material.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/popup_dialog_background</item>
+        <item name="android:backgroundDimAmount">0.42</item>
+        <item name="android:windowElevation">12dp</item>
+        <item name="android:windowTitleStyle">@style/AppPopupTitle</item>
+        <item name="android:dialogPreferredPadding">24dp</item>
+        <item name="android:textColorAlertDialogListItem">@color/popup_item_text</item>
+        <item name="android:listPreferredItemHeightSmall">56dp</item>
+    </style>
+
+    <style name="AppPopupTitle" parent="android:style/TextAppearance.Material.Title">
+        <item name="android:fontFamily">serif</item>
+        <item name="android:textSize">27sp</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
+    </style>
+
+    <style name="AppPopupMenu" parent="android:style/Widget.Material.PopupMenu">
+        <item name="android:popupBackground">@drawable/popup_menu_background</item>
+        <item name="android:popupElevation">10dp</item>
+    </style>
+
+    <style name="AppListPopup" parent="android:style/Widget.Material.ListPopupWindow">
+        <item name="android:popupBackground">@drawable/popup_menu_background</item>
+        <item name="android:popupElevation">10dp</item>
+    </style>
+
+    <style name="AppPopupText" parent="android:style/TextAppearance.Material.Widget.PopupMenu.Large">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/popup_item_text</item>
+    </style>
+
+    <style name="AppPopupTimePicker" parent="android:style/Widget.Material.TimePicker">
+        <item name="android:headerBackground">?attr/popupSoftColor</item>
+        <item name="android:numbersBackgroundColor">?attr/popupSoftColor</item>
+        <item name="android:numbersSelectorColor">?android:attr/colorAccent</item>
+        <item name="android:numbersTextColor">@color/popup_picker_number_text</item>
+        <item name="android:numbersInnerTextColor">@color/popup_picker_number_text</item>
+    </style>
+
+    <style name="AppPopupDatePicker" parent="android:style/Widget.Material.DatePicker">
+        <item name="android:headerBackground">?attr/popupSoftColor</item>
+        <item name="android:dateTextAppearance">@style/AppPopupCalendarDay</item>
+    </style>
+
+    <style name="AppPopupCalendar" parent="android:style/Widget.Material.CalendarView">
+        <item name="android:dateTextAppearance">@style/AppPopupCalendarDay</item>
+    </style>
+
+    <style name="AppPopupCalendarDay" parent="android:style/TextAppearance.Material.Body1">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/popup_picker_number_text</item>
+    </style>
+</resources>

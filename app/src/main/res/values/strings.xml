@@ -1,4 +1,5 @@
 <resources>
+    <string name="popup_brand">DAILY PAUSE</string>
     <string name="mood_graph">Mood Graph</string>
     <string name="mood_analysis">Mood Analysis</string>
     <string name="analytics_choose_view">Choose Mood Graph or Mood Analysis</string>

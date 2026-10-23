@@ -158,7 +158,7 @@ final class WeatherController {
         query.setTextColor(Appearance.color(activity, 0xFF312B35)); query.setHintTextColor(Appearance.color(activity, 0xFF6D6470));
         query.setMinHeight(dp(52)); form.addView(query);
         TextView error = label("", 14); error.setId(R.id.weather_city_error); form.addView(error);
-        AlertDialog dialog = new AlertDialog.Builder(activity).setTitle(R.string.weather_choose_city).setView(form)
+        AlertDialog dialog = AppDialogs.builder(activity).setTitle(R.string.weather_choose_city).setView(form)
                 .setNegativeButton(android.R.string.cancel, null).setPositiveButton(R.string.weather_search, null).create();
         showDialog.accept(dialog);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
@@ -171,7 +171,7 @@ final class WeatherController {
                         if (closed || token != searches || !visible.getAsBoolean() || !dialog.isShowing()) return;
                         if (matches.isEmpty()) { error.setText(R.string.weather_no_matches); dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true); return; }
                         dialog.dismiss(); String[] names = new String[matches.size()]; for (int i = 0; i < names.length; i++) names[i] = matches.get(i).name();
-                        showDialog.accept(new AlertDialog.Builder(activity).setTitle(R.string.weather_choose_city)
+                        showDialog.accept(AppDialogs.builder(activity).setTitle(R.string.weather_choose_city)
                                 .setItems(names, (d, which) -> { if (visible.getAsBoolean()) select(matches.get(which)); })
                                 .setNegativeButton(android.R.string.cancel, null).create());
                     });

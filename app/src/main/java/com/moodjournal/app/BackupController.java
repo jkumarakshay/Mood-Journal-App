@@ -142,7 +142,7 @@ final class BackupController {
         error.setId(R.id.backup_password_error);
         error.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         content.addView(error);
-        AlertDialog dialog = new AlertDialog.Builder(activity).setTitle(restoring ? "Open encrypted backup" : "Protect your backup")
+        AlertDialog dialog = AppDialogs.builder(activity).setTitle(restoring ? "Open encrypted backup" : "Protect your backup")
                 .setView(content).setNegativeButton("Cancel", null).setPositiveButton(restoring ? "Check backup" : "Encrypt and choose Drive", null).create();
         dialog.setOnDismissListener(d -> { password.setText(""); if (confirm != null) confirm.setText(""); });
         showDialog.accept(dialog);
@@ -240,7 +240,7 @@ final class BackupController {
     }
 
     private void confirmRestore(int token) {
-        AlertDialog dialog = new AlertDialog.Builder(activity).setTitle("Restore " + pendingRestore.entries().size() + " entries?")
+        AlertDialog dialog = AppDialogs.builder(activity).setTitle("Restore " + pendingRestore.entries().size() + " entries?")
                 .setMessage("Missing entries and Heaps will be added. Existing entries, Heaps, drafts, and your PIN stay unchanged. Exact duplicates will be skipped.")
                 .setNegativeButton("Cancel", null).setPositiveButton("Restore entries", (d, w) -> {
                     if (generation != token || !authorized.getAsBoolean() || pendingRestore == null) return;

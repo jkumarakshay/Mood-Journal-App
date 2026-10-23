@@ -31,6 +31,8 @@ Android 13 and later asks for notification permission once on first launch. If p
 
 Dark mode covers pages, journal and Heap cards, forms, dialogs, authentication, backups, Mood Graph, analysis cards, chart labels, and system bars. Heap colors use darker versions of the same hues; the saved color profiles and encrypted backup format remain unchanged. Opening Settings locks private tabs. Returning to My Journal or Analytics requires another unlock, including after a theme change. Check-in drafts and the selected Mood Graph range are retained. The appearance preference stays on this device and is not included in journal backups.
 
+App-owned pop-ups share the app palette in both themes: rounded cream/dark surfaces, a Daily Pause heading, serif titles, lavender secondary actions and a purple primary action with pressed/disabled states. Journal, Heap, backup and weather forms use matching fields and scroll when space is limited. Analytics/export menus and Spinner lists use the same surface colors; native date/time pickers keep their controls while receiving themed dialog surfaces and actions. Existing validation, cancellation, private-draft handling and secure-window protection are retained. Android controls the appearance of its permission prompts, biometric prompt, system notifications/toasts and document picker.
+
 ## Weather and reflection
 
 The top-left Check in header shows the selected location’s daily high/low and general description, such as Sunny, Partly sunny, Rainy, or Cloudy. Tap it or open **Settings → Weather**. **Celsius (°C)** is the default; **Fahrenheit (°F)** is remembered across restarts and applies to the header, saved journal details, and all PDF export formats. Changing units does not change the stored temperatures.
@@ -126,13 +128,27 @@ Open this folder in Android Studio, or use a JDK 17 or 21 and the Android SDK wi
 ./gradlew assembleDebug
 ```
 
-Installable APK: `app/build/outputs/apk/debug/Daily-Pause-v1.<commit-count>.apk`. The number is the total commits reachable from the build's `HEAD`, calculated with `git rev-list --count HEAD`. For example, a checkout with 7 commits produces `Daily-Pause-v1.7.apk`. Builds from an exported source archive without Git metadata can supply the recorded count explicitly with `-PapkCommitCount=7`.
+On **main**, the installable APK is `app/build/outputs/apk/debug/Daily-Pause-v1.<main-commit-count>.apk`, using the total commits reachable from `HEAD`.
+
+On **beautify-app-v1**, the filename is **`Daily-Pause-v1.<main-commit-count>.<branch-only-commit-count>.apk`**. The first count comes from `git rev-list --count origin/main`; the second from `git rev-list --count origin/main..HEAD`, so shared history and main commits merged into the branch are not counted twice. For example, main with 12 commits and one new beautify commit produces `Daily-Pause-v1.12.1.apk`. Other branches retain the original total-HEAD-count scheme. Fetch main before building to keep `origin/main` current; builds do not fetch automatically. `-PapkMainRef=main` can select a local main ref instead.
+
+Detached checkouts can select the branch scheme with `-PapkBranch=beautify-app-v1`. Source archives without Git metadata can use `-PapkBranch=beautify-app-v1 -PapkMainCommitCount=12 -PapkBranchCommitCount=1`. The original `-PapkCommitCount=12` override still produces `Daily-Pause-v1.12.apk` without Git. These flags change only the output filename.
 
 Transfer the APK to an Android phone, open it, and allow installation from the app opening the file when prompted. With a connected development device, use:
 
 ```sh
 apk_commit_count=$(git rev-list --count HEAD)
 adb install -r "app/build/outputs/apk/debug/Daily-Pause-v1.${apk_commit_count}.apk"
+```
+
+For a beautify branch build:
+
+```sh
+git fetch origin main
+./gradlew assembleDebug
+apk_main_count=$(git rev-list --count origin/main)
+apk_branch_count=$(git rev-list --count origin/main..HEAD)
+adb install -r "app/build/outputs/apk/debug/Daily-Pause-v1.${apk_main_count}.${apk_branch_count}.apk"
 ```
 
 This is a debug-signed APK for personal testing. Store distribution requires a release build and a securely managed release signing key. Keep the same signing key for future updates; Android cannot update an installation with an APK signed by a different key.

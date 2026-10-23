@@ -1,0 +1,20 @@
+// Keep branch builds distinct from main releases. Counting main..HEAD excludes
+// shared/main commits, including main commits merged back into the feature branch.
+ext.dailyPauseApkName = { Map options, Closure readGit ->
+    def count = { String name, Object value ->
+        String text = value.toString().trim()
+        if (!(text ==~ /\d+/)) throw new IllegalArgumentException("${name} must be a non-negative commit count")
+        text
+    }
+    String branch = options.apkBranch
+    // Preserve the existing source-archive override without requiring Git metadata.
+    if (branch == null) branch = options.apkCommitCount != null ? '' : readGit(['branch', '--show-current'])
+    if (branch == 'beautify-app-v1') {
+        String mainRef = options.apkMainRef ?: 'origin/main'
+        def mainCount = options.apkMainCommitCount != null ? options.apkMainCommitCount : readGit(['rev-list', '--count', mainRef])
+        def branchCount = options.apkBranchCommitCount != null ? options.apkBranchCommitCount : readGit(['rev-list', '--count', "${mainRef}..HEAD".toString()])
+        return "Daily-Pause-v1.${count('apkMainCommitCount', mainCount)}.${count('apkBranchCommitCount', branchCount)}.apk".toString()
+    }
+    def total = options.apkCommitCount != null ? options.apkCommitCount : readGit(['rev-list', '--count', 'HEAD'])
+    "Daily-Pause-v1.${count('apkCommitCount', total)}.apk".toString()
+}

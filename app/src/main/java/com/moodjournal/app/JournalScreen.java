@@ -170,7 +170,7 @@ final class JournalScreen {
 
     private void addMenu() {
         if (!authorized.getAsBoolean()) return;
-        showDialog.accept(new AlertDialog.Builder(activity).setTitle("Add to My Journal")
+        showDialog.accept(AppDialogs.builder(activity).setTitle("Add to My Journal")
                 .setItems(new String[]{"Journal entry", "Heap"}, (d, which) -> {
                     if (!authorized.getAsBoolean()) return;
                     if (which == 0) newEntry(); else explainHeap();
@@ -184,7 +184,7 @@ final class JournalScreen {
     void createHeap(Consumer<JournalHeap> saved, Runnable cancelled) {
         if (!authorized.getAsBoolean()) return;
         if (activity.getSharedPreferences("heap_notices", Context.MODE_PRIVATE).getBoolean("created", false)) { newHeap(saved, cancelled); return; }
-        showDialog.accept(new AlertDialog.Builder(activity).setTitle("A little space for each part of life")
+        showDialog.accept(AppDialogs.builder(activity).setTitle("A little space for each part of life")
                 .setMessage("A Heap is a folder for journals about a particular topic, concern, or facet of your life—such as work, relationships, or personal growth.\n\nCreating Heaps helps compartmentalize your thoughts, which can help clear your mind further. You can also keep journals outside all Heaps.\n\nGive your Heap a name. A category and color profile are optional.")
                 .setNegativeButton("Maybe later", (d, w) -> cancelled.run())
                 .setOnCancelListener(d -> cancelled.run())
@@ -199,7 +199,7 @@ final class JournalScreen {
         Spinner color = spinner(java.util.Arrays.asList(JournalHeap.COLOR_NAMES), R.id.heap_color);
         add(form, color, 4);
         TextView error = error(form);
-        AlertDialog dialog = new AlertDialog.Builder(activity).setTitle("New Heap").setView(scroll(form))
+        AlertDialog dialog = AppDialogs.builder(activity).setTitle("New Heap").setView(scroll(form))
                 .setNegativeButton("Cancel", (d, w) -> cancelled.run())
                 .setOnCancelListener(d -> cancelled.run()).setPositiveButton("Create Heap", null).create();
         showDialog.accept(dialog);
@@ -233,7 +233,7 @@ final class JournalScreen {
         add(form, text("Your unfinished journal is kept as a private draft when you close this window.", 12, false), 10);
         TextView error = error(form);
         boolean[] saved = {false};
-        AlertDialog dialog = new AlertDialog.Builder(activity).setTitle("New journal entry").setView(scroll(form))
+        AlertDialog dialog = AppDialogs.builder(activity).setTitle("New journal entry").setView(scroll(form))
                 .setNegativeButton("Keep draft", null).setPositiveButton("Save entry", null).create();
         dialog.setOnDismissListener(d -> {
             if (saved[0]) return;
@@ -261,7 +261,7 @@ final class JournalScreen {
         add(form, text("Choose a Heap, or keep this journal outside all Heaps.", 15, false), 0);
         Spinner destination = destinations(heaps, entry.heapId());
         add(form, destination, 12);
-        showDialog.accept(new AlertDialog.Builder(activity).setTitle("Move journal entry").setView(form)
+        showDialog.accept(AppDialogs.builder(activity).setTitle("Move journal entry").setView(form)
                 .setNegativeButton("Cancel", null).setPositiveButton("Move entry", (d, w) -> {
                     if (!authorized.getAsBoolean()) return;
                     try { store.move(entry.id(), destinationId(destination, heaps)); refresh.run(); }

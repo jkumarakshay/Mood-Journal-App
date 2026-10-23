@@ -350,7 +350,7 @@ public final class MainActivity extends FragmentActivity {
 
     private void showMoodResponse(int selected) {
         EditText reflection = event;
-        showPrivateDialog(new AlertDialog.Builder(this)
+        showPrivateDialog(AppDialogs.builder(this)
                 .setTitle(getString(selected <= 3 ? R.string.mood_response_hug_title
                         : R.string.mood_response_high_five_title, MOODS[selected - 1]))
                 .setMessage(MOOD_RESPONSES[selected - 1])
@@ -376,7 +376,7 @@ public final class MainActivity extends FragmentActivity {
         WeatherSnapshot snapshot = new WeatherRepository(this).current(System.currentTimeMillis());
         draft.edit().putString("moment_weather", snapshot == null ? null : snapshot.encode()).apply();
         final int token = ++momentGeneration;
-        showPrivateDialog(new AlertDialog.Builder(this).setTitle(R.string.moment_heap_prompt)
+        showPrivateDialog(AppDialogs.builder(this).setTitle(R.string.moment_heap_prompt)
                 .setMessage(R.string.moment_heap_message)
                 .setPositiveButton(R.string.moment_choose_heap, (d, w) -> requestMomentHeap(token, false))
                 .setNeutralButton(R.string.moment_create_heap, (d, w) -> requestMomentHeap(token, true))
@@ -422,7 +422,7 @@ public final class MainActivity extends FragmentActivity {
         List<JournalHeap> heaps;
         try { heaps = store.heaps(); }
         catch (android.database.SQLException e) {
-            showPrivateDialog(new AlertDialog.Builder(this).setTitle(R.string.moment_heap_prompt)
+            showPrivateDialog(AppDialogs.builder(this).setTitle(R.string.moment_heap_prompt)
                     .setMessage(R.string.moment_heaps_unavailable)
                     .setPositiveButton(R.string.moment_back_to_draft, (d, w) -> returnToMomentDraft(token)));
             return;
@@ -430,7 +430,7 @@ public final class MainActivity extends FragmentActivity {
         List<String> choices = new ArrayList<>();
         for (JournalHeap heap : heaps) choices.add(heap.name() + (heap.category().isEmpty() ? "" : " · " + heap.category()));
         choices.add(getString(R.string.moment_create_heap));
-        showPrivateDialog(new AlertDialog.Builder(this).setTitle(R.string.moment_heap_prompt)
+        showPrivateDialog(AppDialogs.builder(this).setTitle(R.string.moment_heap_prompt)
                 .setItems(choices.toArray(new String[0]), (d, position) -> {
                     if (!privateMomentActive(token)) return;
                     if (position == heaps.size()) {
@@ -473,7 +473,7 @@ public final class MainActivity extends FragmentActivity {
             showJournal();
             Toast.makeText(this, "A moment for yourself, saved.", Toast.LENGTH_SHORT).show();
         } catch (android.database.SQLException e) {
-            showPrivateDialog(new AlertDialog.Builder(this).setTitle("Your entry couldn’t be saved")
+            showPrivateDialog(AppDialogs.builder(this).setTitle("Your entry couldn’t be saved")
                     .setMessage("Your draft is still here. Check that your device has free storage, then try again.")
                     .setPositiveButton("Okay", (d, w) -> {
                         if (privateMomentActive(token)) returnToMomentDraft(token);
@@ -540,12 +540,12 @@ public final class MainActivity extends FragmentActivity {
             add(content, text("You took a moment to notice how you felt.", 16, INK, false), 20);
         ScrollView scroll = new ScrollView(this);
         scroll.addView(content);
-        showPrivateDialog(new AlertDialog.Builder(this).setTitle(FACES[entry.mood() - 1] + "  Feeling " + MOODS[entry.mood() - 1].toLowerCase(Locale.ROOT))
+        showPrivateDialog(AppDialogs.builder(this).setTitle(FACES[entry.mood() - 1] + "  Feeling " + MOODS[entry.mood() - 1].toLowerCase(Locale.ROOT))
                 .setView(scroll).setPositiveButton("Close", null)
                 .setNegativeButton("Move to Heap", (d, w) -> journals.moveEntry(entry))
                 .setNeutralButton("Delete", (d, w) -> {
                     if (!journalUnlocked || currentTab != JOURNAL) return;
-                    showPrivateDialog(new AlertDialog.Builder(this)
+                    showPrivateDialog(AppDialogs.builder(this)
                         .setTitle("Delete this entry?").setMessage("This removes the entry permanently from your device.")
                         .setNegativeButton("Keep entry", (dialog, which) -> showEntry(entry))
                         .setPositiveButton("Delete entry", (dialog, which) -> {
@@ -564,6 +564,7 @@ public final class MainActivity extends FragmentActivity {
         privateDialog = dialog;
         privateDialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         privateDialog.show();
+        AppDialogs.decorate(privateDialog);
     }
 
     private void detail(LinearLayout parent, String label, String value) {

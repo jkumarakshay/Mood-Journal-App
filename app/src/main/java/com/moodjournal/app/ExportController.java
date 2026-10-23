@@ -65,7 +65,7 @@ final class ExportController {
 
     ImageButton heapMenu(JournalHeap heap, List<JournalStore.Entry> entries) {
         boolean available = entries.stream().anyMatch(e -> heap.id().equals(e.heapId()) && JournalExport.hasWriting(e));
-        return options(R.string.heap_more, available, () -> showDialog.accept(new AlertDialog.Builder(activity)
+        return options(R.string.heap_more, available, () -> showDialog.accept(AppDialogs.builder(activity)
                 .setTitle(R.string.export_heap_title)
                 .setItems(new String[]{activity.getString(R.string.export_zip), activity.getString(R.string.export_collated)}, (dialog, which) -> {
                     if (!authorized.getAsBoolean()) return;

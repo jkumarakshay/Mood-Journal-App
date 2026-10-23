@@ -1,4 +1,5 @@
 <resources>
+    <item name="popup_title" type="id" />
     <item name="analytics_selector" type="id" />
     <item name="analytics_graph" type="id" />
     <item name="analytics_analysis" type="id" />

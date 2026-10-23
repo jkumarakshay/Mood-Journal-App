@@ -1,7 +1,25 @@
 <resources>
     <style name="AppTheme.Base" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">#775B83</item>
+        <item name="android:alertDialogTheme">@style/AppPopupDialog</item>
+        <item name="android:popupMenuStyle">@style/AppPopupMenu</item>
+        <item name="android:listPopupWindowStyle">@style/AppListPopup</item>
+        <item name="android:textAppearanceLargePopupMenu">@style/AppPopupText</item>
+        <item name="android:textAppearanceSmallPopupMenu">@style/AppPopupText</item>
+
+        <item name="android:colorAccent">#705180</item>
+        <item name="android:colorBackgroundFloating">#FAF7F2</item>
+        <item name="android:textColorPrimary">#312B35</item>
+        <item name="android:textColorSecondary">#6D6470</item>
+        <item name="android:textColorHint">#6D6470</item>
+        <item name="android:textColorLink">#705180</item>
+        <item name="android:colorControlHighlight">#22705180</item>
+        <item name="popupOutlineColor">#E8E1EA</item>
+        <item name="popupSoftColor">#EDE6F1</item>
+        <item name="popupOnAccentColor">#FFFFFF</item>
+        <item name="android:timePickerStyle">@style/AppPopupTimePicker</item>
+        <item name="android:datePickerStyle">@style/AppPopupDatePicker</item>
+        <item name="android:calendarViewStyle">@style/AppPopupCalendar</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:statusBarColor">#FAF7F2</item>
         <item name="android:navigationBarColor">#775B83</item>
@@ -11,7 +29,22 @@
     <style name="AppTheme" parent="AppTheme.Base" />
     <style name="AppTheme.Dark.Base" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
+        <item name="android:alertDialogTheme">@style/AppPopupDialog</item>
+        <item name="android:popupMenuStyle">@style/AppPopupMenu</item>
+        <item name="android:listPopupWindowStyle">@style/AppListPopup</item>
+        <item name="android:textAppearanceLargePopupMenu">@style/AppPopupText</item>
+        <item name="android:textAppearanceSmallPopupMenu">@style/AppPopupText</item>
+
         <item name="android:colorAccent">#D1B2E0</item>
+        <item name="android:textColorHint">#C0B5C3</item>
+        <item name="android:textColorLink">#D1B2E0</item>
+        <item name="android:colorControlHighlight">#33D1B2E0</item>
+        <item name="popupOutlineColor">#514657</item>
+        <item name="popupSoftColor">#3A2E44</item>
+        <item name="popupOnAccentColor">#2C1737</item>
+        <item name="android:timePickerStyle">@style/AppPopupTimePicker</item>
+        <item name="android:datePickerStyle">@style/AppPopupDatePicker</item>
+        <item name="android:calendarViewStyle">@style/AppPopupCalendar</item>
         <item name="android:colorBackground">#1C1920</item>
         <item name="android:colorBackgroundFloating">#29252F</item>
         <item name="android:textColorPrimary">#F4EEF5</item>
