@@ -101,7 +101,7 @@ public class SettingsThemeTest {
             a.findViewById(R.id.settings_about).performClick(); c.pause().stop().start().resume().visible();
             assertEquals("About Daily Pause", title(c.get()));
             a.findViewById(R.id.settings_back).performClick(); a.findViewById(R.id.settings_back).performClick();
-            assertNotNull(a.findViewById(R.id.unlock_pin)); assertFalse(text(a, "Private journal words"));
+            assertNotNull(a.findViewById(R.id.unlock_submit)); assertFalse(text(a, "Private journal words"));
             JournalTest.unlockJournal(a); assertTrue(text(a, "Private journal words"));
         }
     }
@@ -113,7 +113,7 @@ public class SettingsThemeTest {
             themePage(a); a.findViewById(R.id.theme_dark).performClick(); idle(); c.recreate();
             assertEquals("Theme", title(c.get())); assertNull(c.get().findViewById(R.id.unlock_pin));
             c.get().findViewById(R.id.settings_back).performClick(); c.get().findViewById(R.id.settings_back).performClick();
-            assertNotNull(c.get().findViewById(R.id.unlock_pin)); JournalTest.unlockJournal(c.get());
+            assertNotNull(c.get().findViewById(R.id.unlock_submit)); JournalTest.unlockJournal(c.get());
             assertTrue(c.get().findViewById(R.id.range_month).isSelected());
             assertEquals(Appearance.color(c.get(), 0xFF312B35), ((TextView) c.get().findViewById(R.id.history_summary)).getCurrentTextColor());
             assertEquals(Appearance.onAccent(c.get()), ((Button) c.get().findViewById(R.id.range_month)).getCurrentTextColor());
@@ -129,7 +129,7 @@ public class SettingsThemeTest {
         }
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup(); JournalStore store = new JournalStore(context)) {
             MainActivity a = c.get(); a.findViewById(R.id.journal_tab).performClick();
-            assertTrue(contrast(((EditText) a.findViewById(R.id.unlock_pin)).getCurrentTextColor(), 0xFF1C1920) >= 4.5);
+            assertTrue(contrast(((EditText) JournalTest.pinForm(a).findViewById(R.id.unlock_pin)).getCurrentTextColor(), 0xFF1C1920) >= 4.5);
             JournalTest.unlockJournal(a);
             long entryId = store.all().get(0).id();
             View card = findTag(a.getWindow().getDecorView(), entryId);

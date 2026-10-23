@@ -43,7 +43,7 @@ public class CheckInHeapSaveTest {
             assertTrue(store.all().isEmpty()); assertFalse(new PinLock(context).hasPin());
             click(AlertDialog.BUTTON_NEGATIVE);
             assertMoment(store, null); assertFalse(new PinLock(context).hasPin());
-            assertNotNull(c.get().findViewById(R.id.unlock_pin));
+            assertNotNull(c.get().findViewById(R.id.unlock_submit));
             assertTrue(context.getSharedPreferences("draft", 0).getAll().isEmpty());
             prompt.getButton(AlertDialog.BUTTON_NEGATIVE).performClick(); idle();
             assertEquals(1, store.all().size());
@@ -58,7 +58,7 @@ public class CheckInHeapSaveTest {
         }
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup(); JournalStore store = new JournalStore(context)) {
             startMoment(c.get()); click(AlertDialog.BUTTON_POSITIVE);
-            assertNotNull(c.get().findViewById(R.id.unlock_pin));
+            assertNotNull(c.get().findViewById(R.id.unlock_submit));
             assertFalse(text(c.get().getWindow().getDecorView(), "Career"));
             assertTrue(store.all().isEmpty()); assertDraftStored();
             JournalTest.unlockJournal(c.get());
@@ -78,7 +78,7 @@ public class CheckInHeapSaveTest {
     @Test public void createNewShowsExplanationValidatesNameAndSavesMomentInNewHeap() {
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup(); JournalStore store = new JournalStore(context)) {
             startMoment(c.get()); click(AlertDialog.BUTTON_NEUTRAL);
-            assertNotNull(c.get().findViewById(R.id.unlock_pin)); JournalTest.unlockJournal(c.get());
+            assertNotNull(c.get().findViewById(R.id.unlock_submit)); JournalTest.unlockJournal(c.get());
             assertTrue(text(dialog().getWindow().getDecorView(), "compartmentalize")); click(AlertDialog.BUTTON_POSITIVE);
             click(AlertDialog.BUTTON_POSITIVE);
             assertTrue(dialog().isShowing()); assertTrue(store.heaps().isEmpty()); assertTrue(store.all().isEmpty()); assertDraftStored();
@@ -148,7 +148,7 @@ public class CheckInHeapSaveTest {
             AlertDialog stale = dialog(); c.pause().stop(); idle();
             assertFalse(stale.isShowing()); assertFalse(text(c.get().getWindow().getDecorView(), "Private Heap"));
             Shadows.shadowOf(stale).clickOnItem(0); idle(); assertTrue(store.all().isEmpty()); assertDraftStored();
-            c.start().resume().visible(); assertNotNull(c.get().findViewById(R.id.unlock_pin));
+            c.start().resume().visible(); assertNotNull(c.get().findViewById(R.id.unlock_submit));
             JournalTest.unlockJournal(c.get()); Shadows.shadowOf(dialog()).clickOnItem(0); idle(); assertMoment(store, heap.id());
         }
     }
@@ -158,7 +158,7 @@ public class CheckInHeapSaveTest {
         try (JournalStore store = new JournalStore(context)) { heap = store.addHeap("Work", "", null); }
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup(); JournalStore store = new JournalStore(context)) {
             startMoment(c.get()); click(AlertDialog.BUTTON_POSITIVE); c.recreate();
-            MainActivity a = c.get(); assertNotNull(a.findViewById(R.id.unlock_pin)); assertTrue(store.all().isEmpty());
+            MainActivity a = c.get(); assertNotNull(a.findViewById(R.id.unlock_submit)); assertTrue(store.all().isEmpty());
             JournalTest.unlockJournal(a); Shadows.shadowOf(dialog()).clickOnItem(0); idle(); assertMoment(store, heap.id());
         }
     }

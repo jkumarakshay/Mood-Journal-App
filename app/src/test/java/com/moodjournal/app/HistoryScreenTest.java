@@ -36,12 +36,12 @@ public class HistoryScreenTest {
             MainActivity a = c.get();
             AnalyticsTestSupport.graph(a);
             assertNull(a.findViewById(R.id.mood_chart));
-            assertNotNull(a.findViewById(R.id.confirm_pin));
+            assertNotNull(a.findViewById(R.id.unlock_submit));
             JournalTest.unlockJournal(a);
             assertNotNull(a.findViewById(R.id.mood_chart));
             assertTrue(a.findViewById(R.id.history_tab).isSelected());
             a.findViewById(R.id.journal_tab).performClick();
-            assertNotNull(a.findViewById(R.id.unlock_pin));
+            assertNotNull(a.findViewById(R.id.unlock_submit));
             assertNull(a.findViewById(R.id.mood_chart));
         }
     }
@@ -96,7 +96,7 @@ public class HistoryScreenTest {
             JournalTest.unlockJournal(a);
             assertTrue(a.findViewById(R.id.range_year).isSelected());
             c.recreate();
-            assertNotNull(c.get().findViewById(R.id.unlock_pin));
+            assertNotNull(c.get().findViewById(R.id.unlock_submit));
             assertNull(c.get().findViewById(R.id.mood_chart));
             JournalTest.unlockJournal(c.get());
             assertTrue(c.get().findViewById(R.id.range_year).isSelected());

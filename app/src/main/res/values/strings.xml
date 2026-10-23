@@ -143,7 +143,7 @@
     <string name="history_invalid_range">Choose an end date on or after the start date.</string>
     <string name="pin_six_digits">Enter a six-digit PIN.</string>
     <string name="pin_mismatch">The PINs don’t match. Please try again.</string>
-    <string name="use_biometrics">Use biometrics</string>
+    <string name="use_biometrics">Use Biometrics</string>
     <string name="welcome_eyebrow">DAILY PAUSE / WELCOME</string>
     <string name="welcome_title">A little space
 for you.</string>
@@ -220,4 +220,41 @@ for you.</string>
     <string name="updates_open_settings">Open Android settings</string>
     <string name="updates_permission_needed">Installation permission was not enabled. Tap Install update to try again.</string>
     <string name="updates_install_note">Android confirms each installation. Updates keep your journals and settings. Downloads continue through Android while the app is in the background. Checks use public GitHub release information; your journal content is never sent.</string>
+    <string name="auth_eyebrow">DAILY PAUSE / YOUR PRIVATE SPACE</string>
+    <string name="auth_locked_title">A little privacy,
+a little peace.</string>
+    <string name="auth_setup_description">Create a six-digit PIN for your journal and analytics. You can then choose biometrics for everyday sign-ins, with your PIN as a backup.</string>
+    <string name="auth_biometric_description">Use your enrolled biometrics to open your journal and analytics. Your PIN is always here as a backup.</string>
+    <string name="auth_pin_description">Enter your six-digit PIN to open your journal and analytics.</string>
+    <string name="auth_set_pin">Set PIN and unlock</string>
+    <string name="auth_unlock">Unlock</string>
+    <string name="auth_use_pin">Sign in using PIN instead</string>
+    <string name="auth_cancel">Cancel</string>
+    <string name="auth_pin_hint">Six-digit PIN</string>
+    <string name="auth_choose_pin">Choose a six-digit PIN</string>
+    <string name="auth_confirm_pin">Confirm your PIN</string>
+    <string name="auth_set_pin_title">Set your PIN</string>
+    <string name="auth_enter_pin_title">Enter your PIN</string>
+    <string name="auth_create_pin_description">Choose six digits, then enter them again to confirm.</string>
+    <string name="auth_backup_first">First, create a backup PIN. Then choose whether biometrics should be your primary way to sign in.</string>
+    <string name="auth_remember_pin">Keep this PIN somewhere safe. Daily Pause cannot recover it.</string>
+    <string name="auth_biometric_setup_needed">Biometrics need an enrolled fingerprint or another supported strong biometric in Android settings. Your PIN works without biometrics.</string>
+    <string name="auth_securing_pin">Securing your PIN…</string>
+    <string name="auth_checking_pin">Checking PIN…</string>
+    <string name="auth_incorrect_pin">That PIN wasn’t correct. Try again.</string>
+    <string name="auth_unlock_failed">Couldn’t unlock your journal. Please try again. Your entries have not been removed.</string>
+    <string name="auth_pin_saved_elsewhere">Your PIN has already been saved. Enter it to continue.</string>
+    <plurals name="auth_retry_pin">
+        <item quantity="one">Too many attempts. Try again in %1$d second, or use available biometrics.</item>
+        <item quantity="other">Too many attempts. Try again in %1$d seconds, or use available biometrics.</item>
+    </plurals>
+    <string name="auth_biometric_title">Unlock Daily Pause</string>
+    <string name="auth_biometric_subtitle">Your journal and analytics stay private</string>
+    <string name="auth_biometric_unavailable">Biometrics were cancelled or are unavailable. Try again or sign in using your PIN instead.</string>
+    <string name="auth_biometric_not_recognized">Biometric not recognized. Try again or choose the PIN option.</string>
+    <string name="auth_biometric_preference_title">Use biometrics first?</string>
+    <string name="auth_biometric_opt_in">Would you prefer to use biometrics for future sign-ins? Daily Pause will try your enrolled biometrics first. You can always choose “Sign in using PIN instead.”</string>
+    <string name="auth_biometric_yes">Yes, use biometrics</string>
+    <string name="auth_biometric_no">Use PIN</string>
+    <string name="auth_preference_failed">Couldn’t save your preference. Please choose again.</string>
 </resources>

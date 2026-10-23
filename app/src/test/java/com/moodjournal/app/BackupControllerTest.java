@@ -110,7 +110,7 @@ public class BackupControllerTest {
             assertEquals("application/octet-stream", launch.intent.getType());
             assertTrue(launch.intent.getStringExtra(Intent.EXTRA_TITLE).endsWith(".dpa"));
             returnFromPicker(c, launch, FILE_URI);
-            assertNotNull(a.findViewById(R.id.unlock_pin));
+            assertNotNull(a.findViewById(R.id.unlock_submit));
             assertNull(a.findViewById(R.id.backup_export));
             JournalTest.await(() -> status().startsWith("Encrypted backup saved"));
             byte[] saved = Files.readAllBytes(providerFile.toPath());
@@ -140,7 +140,7 @@ public class BackupControllerTest {
             ShadowActivity.IntentForResult launch = awaitPicker(c.get());
             c.recreate();
             MainActivity recreated = c.get();
-            assertNotNull(recreated.findViewById(R.id.unlock_pin));
+            assertNotNull(recreated.findViewById(R.id.unlock_submit));
             recreated.getActivityResultRegistry().dispatchResult(launch.requestCode, Activity.RESULT_OK, new Intent().setData(FILE_URI));
             Shadows.shadowOf(Looper.getMainLooper()).idle();
             JournalTest.await(() -> status().startsWith("Encrypted backup saved"));
@@ -171,7 +171,7 @@ public class BackupControllerTest {
             ShadowActivity.IntentForResult launch = awaitPicker(a);
             assertEquals(Intent.ACTION_OPEN_DOCUMENT, launch.intent.getAction());
             returnFromPicker(c, launch, FILE_URI);
-            assertNotNull(a.findViewById(R.id.unlock_pin));
+            assertNotNull(a.findViewById(R.id.unlock_submit));
             JournalTest.unlockJournal(a);
             a.findViewById(R.id.backup_restore).performClick();
             enterPassphrase(ShadowAlertDialog.getLatestAlertDialog(), false, PASSPHRASE);

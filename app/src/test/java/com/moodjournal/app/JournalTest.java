@@ -134,12 +134,32 @@ public class JournalTest {
         Shadows.shadowOf(Looper.getMainLooper()).idle();
     }
 
+    static View pinForm(MainActivity activity) {
+        if (activity.findViewById(R.id.unlock_pin) != null) return activity.getWindow().getDecorView();
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        if (dialog == null || !dialog.isShowing() || dialog.findViewById(R.id.unlock_pin) == null) {
+            View action = activity.findViewById(R.id.unlock_use_pin);
+            if (action == null) action = activity.findViewById(R.id.unlock_submit);
+            assertNotNull("Expected an unlock action", action); action.performClick();
+            dialog = ShadowAlertDialog.getLatestAlertDialog();
+        }
+        assertNotNull(dialog); assertTrue(dialog.isShowing()); return dialog.getWindow().getDecorView();
+    }
+
     static void unlockJournal(MainActivity activity) {
-        ((EditText) activity.findViewById(R.id.unlock_pin)).setText("642081");
-        EditText confirm = activity.findViewById(R.id.confirm_pin);
+        View form = pinForm(activity);
+        ((EditText) form.findViewById(R.id.unlock_pin)).setText("642081");
+        EditText confirm = form.findViewById(R.id.confirm_pin);
         if (confirm != null) confirm.setText("642081");
-        activity.findViewById(R.id.unlock_submit).performClick();
-        await(() -> activity.findViewById(R.id.unlock_submit) == null);
+        View submit = form.findViewById(R.id.pin_dialog_submit);
+        if (submit == null) submit = form.findViewById(R.id.unlock_submit);
+        submit.performClick();
+        await(() -> {
+            AlertDialog prompt = ShadowAlertDialog.getLatestAlertDialog();
+            if (prompt != null && prompt.isShowing() && prompt.findViewById(R.id.biometric_preference_message) != null)
+                prompt.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
+            return activity.findViewById(R.id.unlock_submit) == null && activity.findViewById(R.id.unlock_use_pin) == null;
+        });
     }
 
     static void saveOutsideHeaps(MainActivity activity) {

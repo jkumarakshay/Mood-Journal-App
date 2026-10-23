@@ -19,6 +19,16 @@ final class PinLock {
 
     boolean hasPin() { return prefs.contains("hash") || prefs.contains("salt"); }
 
+    boolean biometricPrimary() { return hasPin() && prefs.getBoolean("biometric_primary", false); }
+
+    boolean biometricChoiceMade() { return prefs.contains("biometric_primary"); }
+
+    synchronized void setBiometricPrimary(boolean enabled) throws GeneralSecurityException {
+        if (!hasPin()) throw new GeneralSecurityException("Set a backup PIN first");
+        if (!prefs.edit().putBoolean("biometric_primary", enabled).commit())
+            throw new GeneralSecurityException("Could not save biometric preference");
+    }
+
     synchronized void setPin(char[] pin) throws GeneralSecurityException {
         if (hasPin()) throw new GeneralSecurityException("A PIN is already configured");
         if (!validFormat(pin)) throw new GeneralSecurityException("Use six digits");

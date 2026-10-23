@@ -81,7 +81,7 @@ public class ExportControllerTest {
             assertEquals(Intent.ACTION_CREATE_DOCUMENT, launch.intent.getAction()); assertEquals("application/pdf", launch.intent.getType());
             assertTrue(launch.intent.getStringExtra(Intent.EXTRA_TITLE).endsWith(".pdf"));
             returnFromPicker(c, launch, Uri.parse("content://daily.pause.exports/document/journal"));
-            assertNotNull(c.get().findViewById(R.id.unlock_pin)); assertNull(c.get().findViewById(R.id.export_more));
+            assertNotNull(c.get().findViewById(R.id.unlock_submit)); assertNull(c.get().findViewById(R.id.export_more));
             JournalTest.unlockJournal(c.get()); JournalTest.await(() -> status(c.get()).startsWith("Export saved"));
             assertArrayEquals(RecordingPdfDocument.payload(1), Files.readAllBytes(destination.toPath()));
             assertNoPlaintextCache();
@@ -118,7 +118,7 @@ public class ExportControllerTest {
     @Test public void pickerRequestSurvivesRecreationWithoutSerializingJournalTextOrUnlocking() throws Exception {
         try (ActivityController<MainActivity> c = unlocked()) {
             openMenu(c.get(), journalId); export(); ShadowActivity.IntentForResult launch = picker(c.get());
-            c.recreate(); assertNotNull(c.get().findViewById(R.id.unlock_pin));
+            c.recreate(); assertNotNull(c.get().findViewById(R.id.unlock_submit));
             c.get().getActivityResultRegistry().dispatchResult(launch.requestCode, Activity.RESULT_OK,
                     new Intent().setData(Uri.parse("content://daily.pause.exports/document/restored"))); idle();
             JournalTest.unlockJournal(c.get()); JournalTest.await(() -> status(c.get()).startsWith("Export saved"));
@@ -143,7 +143,7 @@ public class ExportControllerTest {
             c.pause().stop(); assertFalse(Shadows.shadowOf(popup).isShowing());
             assertFalse(Shadows.shadowOf(popup).getOnMenuItemClickListener().onMenuItemClick(popup.getMenu().findItem(R.id.export_action)));
             assertNull(Shadows.shadowOf(c.get()).peekNextStartedActivityForResult());
-            c.start().resume().visible(); assertNotNull(c.get().findViewById(R.id.unlock_pin));
+            c.start().resume().visible(); assertNotNull(c.get().findViewById(R.id.unlock_submit));
             JournalTest.unlockJournal(c.get()); openMenu(c.get(), journalId); assertTrue(action().isEnabled());
         }
         Appearance.setDark(context, false);

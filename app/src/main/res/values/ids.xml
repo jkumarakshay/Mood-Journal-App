@@ -1,4 +1,8 @@
 <resources>
+    <item name="unlock_use_pin" type="id" />
+    <item name="pin_dialog_submit" type="id" />
+    <item name="pin_dialog_status" type="id" />
+    <item name="biometric_preference_message" type="id" />
     <item name="settings_updates" type="id" />
     <item name="updates_automatic" type="id" />
     <item name="updates_check" type="id" />

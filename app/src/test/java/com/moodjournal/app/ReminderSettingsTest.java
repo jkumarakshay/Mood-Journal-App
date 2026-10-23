@@ -104,7 +104,7 @@ public class ReminderSettingsTest {
             assertNotNull(a.findViewById(R.id.entry_event));
             assertEquals("Unfinished words", ((EditText) a.findViewById(R.id.entry_event)).getText().toString());
             assertTrue(a.findViewById(R.id.mood_4).isSelected()); assertNull(a.findViewById(R.id.journal_add)); assertEquals(1, store.all().size());
-            a.findViewById(R.id.journal_tab).performClick(); assertNotNull(a.findViewById(R.id.unlock_pin));
+            a.findViewById(R.id.journal_tab).performClick(); assertNotNull(a.findViewById(R.id.unlock_submit));
         }
     }
 

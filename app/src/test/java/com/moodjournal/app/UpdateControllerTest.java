@@ -181,7 +181,7 @@ public class UpdateControllerTest {
             Switch toggle = c.get().findViewById(R.id.updates_automatic); toggle.setChecked(true); assertTrue(prefs().getBoolean("automatic", false));
             toggle.setChecked(false); c.recreate(); assertFalse(((Switch)c.get().findViewById(R.id.updates_automatic)).isChecked());
             assertNotNull(c.get().findViewById(R.id.updates_check));
-            c.get().findViewById(R.id.journal_tab).performClick(); assertNotNull(c.get().findViewById(R.id.unlock_pin));
+            c.get().findViewById(R.id.journal_tab).performClick(); assertNotNull(c.get().findViewById(R.id.unlock_submit));
         }
     }
     private void check(Host host) { host.findViewById(R.id.updates_check).performClick(); JournalTest.await(() -> !working(host)); }

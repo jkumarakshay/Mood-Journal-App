@@ -44,9 +44,11 @@ public class JournalSecurityTest {
             MainActivity a = c.get();
             a.findViewById(R.id.journal_tab).performClick();
             assertFalse(containsText(a.getWindow().getDecorView(), "Private journal words"));
-            ((EditText) a.findViewById(R.id.unlock_pin)).setText("642081");
-            ((EditText) a.findViewById(R.id.confirm_pin)).setText("123456");
-            a.findViewById(R.id.unlock_submit).performClick();
+            assertNull(a.findViewById(R.id.unlock_pin));
+            View form = JournalTest.pinForm(a);
+            ((EditText) form.findViewById(R.id.unlock_pin)).setText("642081");
+            ((EditText) form.findViewById(R.id.confirm_pin)).setText("123456");
+            form.findViewById(R.id.pin_dialog_submit).performClick();
             assertFalse(new PinLock(context).hasPin());
             assertFalse(containsText(a.getWindow().getDecorView(), "Private journal words"));
             JournalTest.unlockJournal(a);
@@ -86,7 +88,7 @@ public class JournalSecurityTest {
             assertFalse(dialog.isShowing());
             assertFalse(containsText(a.getWindow().getDecorView(), "Private journal words"));
             c.start().resume().visible();
-            assertNotNull(a.findViewById(R.id.unlock_pin));
+            assertNotNull(a.findViewById(R.id.unlock_submit));
             JournalTest.unlockJournal(a);
             assertTrue(containsText(a.getWindow().getDecorView(), "Private journal words"));
         }
@@ -98,7 +100,7 @@ public class JournalSecurityTest {
             a.findViewById(R.id.journal_tab).performClick();
             JournalTest.unlockJournal(a);
             c.recreate();
-            assertNotNull(c.get().findViewById(R.id.unlock_pin));
+            assertNotNull(c.get().findViewById(R.id.unlock_submit));
             assertFalse(containsText(c.get().getWindow().getDecorView(), "Private journal words"));
         }
     }
@@ -108,11 +110,14 @@ public class JournalSecurityTest {
             MainActivity a = c.get();
             JournalTest.chooseMood(a, R.id.mood_3);
             JournalTest.saveOutsideHeaps(a);
-            assertNotNull(a.findViewById(R.id.confirm_pin));
+            assertNotNull(a.findViewById(R.id.unlock_submit));
             assertFalse(containsText(a.getWindow().getDecorView(), "Private journal words"));
             assertTrue((a.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);
-            assertFalse(a.findViewById(R.id.unlock_pin).isSaveEnabled());
-            assertFalse(a.findViewById(R.id.confirm_pin).isSaveEnabled());
+            assertNull(a.findViewById(R.id.unlock_pin));
+            View form = JournalTest.pinForm(a);
+            assertFalse(form.findViewById(R.id.unlock_pin).isSaveEnabled());
+            assertFalse(form.findViewById(R.id.confirm_pin).isSaveEnabled());
+            assertTrue((ShadowAlertDialog.getLatestAlertDialog().getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);
         }
     }
 
@@ -154,7 +159,7 @@ public class JournalSecurityTest {
                 LinearLayout page = new LinearLayout(c.get());
                 gate.show(page);
                 page.findViewById(R.id.unlock_biometric).performClick();
-                biometrics.error.accept("Not recognized");
+                biometrics.error.accept(new JournalGate.Failure("Not recognized", false, true));
                 assertEquals(0, unlocks.get());
                 page.findViewById(R.id.unlock_biometric).performClick();
                 Runnable staleSuccess = biometrics.success;
@@ -174,9 +179,9 @@ public class JournalSecurityTest {
 
     private static final class FakeBiometrics implements JournalGate.Biometrics {
         Runnable success;
-        Consumer<String> error;
+        Consumer<JournalGate.Failure> error;
         public boolean available() { return true; }
-        public void authenticate(Runnable success, Consumer<String> error) { this.success = success; this.error = error; }
+        public void authenticate(Runnable success, Consumer<JournalGate.Failure> error) { this.success = success; this.error = error; }
         public void cancel() {}
     }
 

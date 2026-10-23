@@ -32,10 +32,10 @@ public class AnalyticsScreenTest {
             a.findViewById(R.id.history_tab).performClick();PopupMenu menu=ShadowPopupMenu.getLatestPopupMenu();
             assertEquals(2,menu.getMenu().size());assertEquals("Mood Graph",menu.getMenu().getItem(0).getTitle());assertEquals("Mood Analysis",menu.getMenu().getItem(1).getTitle());menu.dismiss();
             assertNotNull(a.findViewById(R.id.save_entry));
-            AnalyticsTestSupport.analysis(a);assertNull(a.findViewById(R.id.analysis_title));assertNotNull(a.findViewById(R.id.confirm_pin));
+            AnalyticsTestSupport.analysis(a);assertNull(a.findViewById(R.id.analysis_title));assertNotNull(a.findViewById(R.id.unlock_submit));
             JournalTest.unlockJournal(a);assertNotNull(a.findViewById(R.id.analysis_title));
             AnalyticsTestSupport.graph(a);assertNotNull(a.findViewById(R.id.mood_chart));assertNull(a.findViewById(R.id.analysis_title));
-            a.findViewById(R.id.checkin_tab).performClick();AnalyticsTestSupport.analysis(a);assertNotNull(a.findViewById(R.id.unlock_pin));assertNull(a.findViewById(R.id.analysis_title));
+            a.findViewById(R.id.checkin_tab).performClick();AnalyticsTestSupport.analysis(a);assertNotNull(a.findViewById(R.id.unlock_submit));assertNull(a.findViewById(R.id.analysis_title));
         }
     }
     @Test public void waitingStateCountsDistinctDaysAndDoesNotClaimPatterns() throws Exception {
@@ -51,9 +51,9 @@ public class AnalyticsScreenTest {
             MainActivity a=c.get();AnalyticsTestSupport.analysis(a);JournalTest.unlockJournal(a);await(a,R.id.analysis_weather,null);
             assertNotNull(a.findViewById(R.id.analysis_responses));assertNotNull(a.findViewById(R.id.analysis_time));
             assertTrue(((TextView)a.findViewById(R.id.analysis_status)).getText().toString().contains("Next weekly review"));
-            c.pause().stop().start().resume().visible();assertNull(a.findViewById(R.id.analysis_weather));assertNotNull(a.findViewById(R.id.unlock_pin));
+            c.pause().stop().start().resume().visible();assertNull(a.findViewById(R.id.analysis_weather));assertNotNull(a.findViewById(R.id.unlock_submit));
             JournalTest.unlockJournal(a);await(a,R.id.analysis_weather,null);c.recreate();
-            assertNull(c.get().findViewById(R.id.analysis_title));assertNotNull(c.get().findViewById(R.id.unlock_pin));
+            assertNull(c.get().findViewById(R.id.analysis_title));assertNotNull(c.get().findViewById(R.id.unlock_submit));
             JournalTest.unlockJournal(c.get());await(c.get(),R.id.analysis_weather,null);
         }
     }

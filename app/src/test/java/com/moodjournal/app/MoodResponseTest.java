@@ -72,7 +72,7 @@ public class MoodResponseTest {
             JournalTest.saveOutsideHeaps(a);
             assertEquals(1, store.all().size());
             assertEquals(4, store.all().get(0).mood());
-            assertNotNull(a.findViewById(R.id.unlock_pin));
+            assertNotNull(a.findViewById(R.id.unlock_submit));
         }
     }
 
@@ -85,7 +85,7 @@ public class MoodResponseTest {
             assertEquals(1, store.all().size());
             assertEquals(1, store.all().get(0).mood());
             assertEquals("", store.all().get(0).event());
-            assertNotNull(c.get().findViewById(R.id.unlock_pin));
+            assertNotNull(c.get().findViewById(R.id.unlock_submit));
         }
     }
 

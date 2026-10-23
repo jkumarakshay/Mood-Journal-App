@@ -71,7 +71,7 @@ public class OnboardingTest {
             assertTrue(a.findViewById(R.id.checkin_tab).isSelected());
             assertFalse(new PinLock(context).hasPin());
             try (JournalStore store = new JournalStore(context)) { assertTrue(store.all().isEmpty()); assertTrue(store.heaps().isEmpty()); }
-            a.findViewById(R.id.journal_tab).performClick(); assertNotNull(a.findViewById(R.id.confirm_pin));
+            a.findViewById(R.id.journal_tab).performClick(); assertNotNull(a.findViewById(R.id.unlock_submit));
         }
     }
     @Test public void tourRestoresExactStepAcrossBackgroundRecreationAndReminderIntent() {
@@ -95,7 +95,7 @@ public class OnboardingTest {
             c.get().findViewById(R.id.welcome_tour).performClick(); c.get().findViewById(R.id.tour_skip).performClick();
             c.get().findViewById(R.id.history_tab).performClick();
             org.robolectric.shadows.ShadowPopupMenu.getLatestPopupMenu().getMenu().performIdentifierAction(R.id.analytics_graph, 0);
-            assertNotNull(c.get().findViewById(R.id.unlock_pin));
+            assertNotNull(c.get().findViewById(R.id.unlock_submit));
         }
         assertEquals(OnboardingState.COMPLETE, new OnboardingState(context).step());
     }
