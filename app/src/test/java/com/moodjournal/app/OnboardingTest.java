@@ -25,6 +25,7 @@ public class OnboardingTest {
     private Context context;
     @Before public void freshInstall() {
         context = RuntimeEnvironment.getApplication(); context.deleteDatabase("journal.db");
+        context.getSharedPreferences(UpdateController.PREFS, 0).edit().putBoolean("automatic", false).commit();
         for (String name : new String[]{OnboardingState.PREFS, "draft", "journal_lock", "appearance", "reminder", "weather"})
             context.getSharedPreferences(name, 0).edit().clear().commit();
     }

@@ -1,4 +1,11 @@
 <resources>
+    <item name="settings_updates" type="id" />
+    <item name="updates_automatic" type="id" />
+    <item name="updates_check" type="id" />
+    <item name="updates_status" type="id" />
+    <item name="updates_download" type="id" />
+    <item name="updates_cancel_download" type="id" />
+    <item name="updates_releases" type="id" />
     <item name="welcome_title" type="id" />
     <item name="welcome_tour" type="id" />
     <item name="welcome_thanks" type="id" />

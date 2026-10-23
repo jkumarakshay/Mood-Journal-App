@@ -70,6 +70,7 @@ public final class MainActivity extends FragmentActivity {
     private ReminderController reminders;
     private ExportController exports;
     private WeatherController weather;
+    private UpdateController updates;
     private AnalysisScreen analysis;
     private int analyticsMode;
     private PopupMenu analyticsMenu;
@@ -103,17 +104,21 @@ public final class MainActivity extends FragmentActivity {
                 () -> settingsPage == SettingsScreen.NOTIFICATION, this::showSettings);
         weather = new WeatherController(this, this::showPrivateDialog,
                 () -> settingsPage == SettingsScreen.WEATHER, this::showSettings, () -> openSettings(SettingsScreen.WEATHER));
+        updates = new UpdateController(this, () -> settingsPage == SettingsScreen.UPDATES,
+                () -> !onboarding.active() && settingsPage == SettingsScreen.NONE && currentTab == CHECK_IN
+                        && (privateDialog == null || !privateDialog.isShowing()),
+                this::showSettings, () -> openSettings(SettingsScreen.UPDATES), this::showPrivateDialog);
         settings = new SettingsScreen(this, this::openSettings, dark -> {
             saveDraft();
             Appearance.setDark(this, dark);
             recreate();
-        }, reminders, weather);
+        }, reminders, weather, updates);
         settingsBack = new OnBackPressedCallback(false) {
             @Override public void handleOnBackPressed() { backFromSettings(); }
         };
         getOnBackPressedDispatcher().addCallback(this, settingsBack);
         settingsPage = state == null ? SettingsScreen.NONE : state.getInt("settings_page", SettingsScreen.NONE);
-        if (settingsPage < SettingsScreen.NONE || settingsPage > SettingsScreen.WEATHER) settingsPage = SettingsScreen.NONE;
+        if (settingsPage < SettingsScreen.NONE || settingsPage > SettingsScreen.UPDATES) settingsPage = SettingsScreen.NONE;
         mood = draft.getInt("mood", 0);
         pendingMoment = state != null && state.getBoolean("pending_moment") && mood != 0;
         createHeapForMoment = pendingMoment && state.getBoolean("create_heap_for_moment");
@@ -216,7 +221,7 @@ public final class MainActivity extends FragmentActivity {
         hideKeyboard();
         journalUnlocked = false;
         gate.lock();
-        backup.onPause(); exports.onPause(); weather.onPause();
+        backup.onPause(); exports.onPause(); weather.onPause(); updates.onLeave();
         if (tab == CHECK_IN) showCheckIn();
         else if (tab == JOURNAL) showJournal();
         else showHistory();
@@ -239,7 +244,7 @@ public final class MainActivity extends FragmentActivity {
         }
         journalUnlocked = false;
         gate.lock();
-        backup.onPause(); exports.onPause(); weather.onPause();
+        backup.onPause(); exports.onPause(); weather.onPause(); updates.onLeave();
         settingsPage = target;
         showSettings();
     }
@@ -250,6 +255,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void backFromSettings() {
+        updates.onLeave();
         if (settingsPage != SettingsScreen.HOME) {
             settingsPage = SettingsScreen.HOME;
             showSettings();
@@ -359,6 +365,7 @@ public final class MainActivity extends FragmentActivity {
         TextView privacy = text("Journal entries stay on this device unless you export or back them up.\nYour unfinished writing is saved as a draft.", 12, MUTED, false);
         privacy.setGravity(Gravity.CENTER);
         add(page, privacy, 16);
+        updates.maybeCheckAutomatically();
     }
 
     private void updateMoods() {
@@ -618,6 +625,7 @@ public final class MainActivity extends FragmentActivity {
         backup.onPause();
         exports.onPause();
         weather.onPause();
+        updates.onLeave();
         journalUnlocked = false;
         gate.lock();
         if (privateDialog != null) {
@@ -633,6 +641,7 @@ public final class MainActivity extends FragmentActivity {
         if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN && !journalUnlocked) showPrivateTab();
         reminders.onResume();
         weather.onResume();
+        updates.onResume();
     }
 
     @Override protected void onNewIntent(Intent intent) {
@@ -645,7 +654,7 @@ public final class MainActivity extends FragmentActivity {
             privateDialog.dismiss();
             privateDialog = null;
         }
-        journalUnlocked = false; gate.lock(); backup.onPause(); exports.onPause(); weather.onPause(); settingsPage = SettingsScreen.NONE;
+        journalUnlocked = false; gate.lock(); backup.onPause(); exports.onPause(); weather.onPause(); updates.onLeave(); settingsPage = SettingsScreen.NONE;
         intent.setAction(null);
         if (onboarding.active()) showOnboarding(); else showCheckIn();
     }
@@ -662,7 +671,7 @@ public final class MainActivity extends FragmentActivity {
         exports.saveState(state);
         super.onSaveInstanceState(state);
     }
-    @Override protected void onDestroy() { gate.close(); backup.close(); exports.close(); weather.close(); analysis.close(); store.close(); super.onDestroy(); }
+    @Override protected void onDestroy() { gate.close(); backup.close(); exports.close(); weather.close(); updates.close(); analysis.close(); store.close(); super.onDestroy(); }
 
     private void showOnboarding() {
         settingsPage = SettingsScreen.NONE;

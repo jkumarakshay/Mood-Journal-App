@@ -20,7 +20,8 @@ Private steps use clearly marked, empty previews without opening saved entries, 
 - Use the **+** menu in My Journal to create a journal or Heap; filter journals across Heaps by category.
 - See today’s weather high/low and description at the top left of Check in; choose Celsius or Fahrenheit in Settings → Weather.
 - Discover private, on-device weather, journal-theme and calendar associations after 30 distinct journaling days; reports are reviewed weekly.
-- Open Settings from the top-right gear for About, a saved Light or Dark theme, the daily notification time, and Weather.
+- Open Settings from the top-right gear for About, a saved Light or Dark theme, the daily notification time, Weather, and Updates.
+- Check public GitHub Releases for in-app updates, download through Android, and install after confirmation.
 - Protect My Journal with a six-digit PIN and optional enrolled strong biometrics.
 - Open the protected **Analytics** menu for **Mood Graph** (existing ranges and chart) or **Mood Analysis** (a formatted pattern report).
 - Save passphrase-encrypted backups to Google Drive using Android's file picker, and restore missing entries without overwriting your journal.
@@ -38,6 +39,27 @@ Android 13 and later asks for notification permission once after the welcome pag
 Dark mode covers pages, journal and Heap cards, forms, dialogs, authentication, backups, Mood Graph, analysis cards, chart labels, and system bars. Recommended pastel Heap colors use darker versions of the same hues. Other custom RGB colors retain their exact values, with card text and menu icons adjusted for contrast; Default follows the app theme. The saved color values and encrypted backup format remain unchanged. Opening Settings locks private tabs. Returning to My Journal or Analytics requires another unlock, including after a theme change. Check-in drafts and the selected Mood Graph range are retained. The appearance preference stays on this device and is not included in journal backups.
 
 App-owned pop-ups share the app palette in both themes: rounded cream/dark surfaces, a Daily Pause heading, serif titles, lavender secondary actions and a purple primary action with pressed/disabled states. Journal, Heap, backup and weather forms use matching fields and scroll when space is limited. Analytics/export menus and Spinner lists use the same surface colors; native date/time pickers keep their controls while receiving themed dialog surfaces and actions. Existing validation, cancellation, private-draft handling and secure-window protection are retained. Android controls the appearance of its permission prompts, biometric prompt, system notifications/toasts and document picker.
+
+## In-app updates
+
+**Settings → Updates** shows the installed app version, an **Automatic update checks** toggle (on by default), and **Check for updates**. Automatic checks run at most once per 24 hours while the app is in the foreground on Check in, after onboarding. They avoid private screens and other open dialogs. Manual checks work with automatic checks disabled, and completed manual checks also reset the daily automatic-check interval. Network failures never block journaling; a failed automatic check waits until the next day, while manual retry remains available. The last successful check is shown in local device time.
+
+Checks read the latest stable public GitHub Release from `jkumarakshay/Mood-Journal-App`; drafts and prereleases are excluded. Newer releases show version, download size and plain-text release notes. An automatic offer appears once per version. Downloading always requires a tap; **Automatic update checks** does not enable automatic downloads or silent installations. **View GitHub releases** opens the repository in a browser.
+
+Android Download Manager continues requested downloads across backgrounding and process/activity recreation. Updates shows progress, retry/cancel controls and **Install update** when ready. Before each installation attempt, the app checks the exact file size and SHA-256, package identity, increasing Android version code, version name, minimum SDK and signing certificate. A failed verification removes the download. A narrow FileProvider shares only the downloaded APK with read permission. Android may ask for **Allow from this source** for Daily Pause; returning from that page rechecks the file before opening the installer. Android always confirms installation. Cancelling the installer leaves the verified download available for retry; the app does not claim installation succeeded before Android installs it.
+
+The package ID and signing key must remain the same to preserve journals, Heaps, PIN, preferences and backups during an update. No database or encrypted-backup migration is introduced by the updater. Update metadata, preferences and download IDs stay on the device and are excluded from encrypted journal backups. Old downloaded APKs are removed after installing the newer version. No GitHub token, journal text, mood data or location is sent with checks.
+
+### Publishing an update
+
+Install this version once to enable the updater; older APKs do not yet contain it. This implementation uses app version **1.5.0 / versionCode 7**. For each subsequent release, increase `versionCode` in `app/build.gradle` and set a stable `major.minor.patch` `versionName` (for example `1.5.1 / 8` or `1.6.0 / 9`). APK commit-count filenames remain independent of these installed version values.
+
+1. Build and test the APK with the **same existing signing key**. Keep that key outside the public repository. A fresh CI-generated debug key will not update existing installations.
+2. Run `python3 scripts/create-update-manifest.py path/to/Daily-Pause.apk` with `ANDROID_HOME` set, or pass `--build-tools /path/to/sdk/build-tools/35.0.0`. The helper verifies the APK signature and reads its actual package/version/SDK, then writes `daily-pause-update.json` beside it with its size and SHA-256.
+3. Create a stable GitHub Release, such as `v1.5.1`, mark it as the latest release, and upload **both the unchanged APK and daily-pause-update.json to that same release**. Add the release notes to the release description. Do not mark it as a prerelease. The manifest names the exact APK asset; it does not change the filename convention.
+4. Users can use Check for updates immediately or receive the next automatic offer. An incompatible Android minimum is explained without offering installation; an equal or lower version code is never offered.
+
+The repository had no published releases when this feature was implemented. No release or tag is published by the app or the manifest helper. The updater requires the manifest and APK for a supported release; it reports a retryable check failure if a latest release is incomplete. There are no background periodic jobs or extra notification permissions for checks. Daily check-in notification settings are independent.
 
 ## Weather and reflection
 
@@ -197,3 +219,5 @@ Before a public release, also test the APK on physical devices, including real f
 Analytics tests cover distinct-day eligibility, sparse and conflicting weather, strong and absent associations, equal daily weighting, weekly/DST refresh dates, cache invalidation after mutations, schema migration, background-job constraints, text classification/abstention and protected navigation/recreation.
 
 First-launch tests cover both welcome choices, exact manual tour order, resume/recreation, reminder intents, existing-install migration, notification deferral and locked, data-free private previews. Native rendering checks coach-mark targets and reachable Next actions in both themes and with larger text on a small screen. Existing feature tests explicitly start as returning users through a test-only Application.
+
+Updater tests cover stable-release parsing, malformed/cross-repository metadata, manifest/checksum/size limits, version ordering, clock changes, toggling and manual checks, automatic throttling/offers, stale callbacks, persistent Android downloads, certificate/package/SDK verification, narrow installer URI permissions, permission-return revalidation, journal preservation and Android 8 compatibility. Release HTTP and Android package verification metadata use deterministic test fixtures; real Android installer consent remains a device-level check.
