@@ -22,7 +22,7 @@ import android.widget.ImageButton;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.PopupMenu;
+import android.widget.ListPopupWindow;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.ArrayList;
@@ -73,7 +73,7 @@ public final class MainActivity extends FragmentActivity {
     private UpdateController updates;
     private AnalysisScreen analysis;
     private int analyticsMode;
-    private PopupMenu analyticsMenu;
+    private ListPopupWindow analyticsMenu;
     private OnboardingState onboarding;
 
     @Override public void onCreate(Bundle state) {
@@ -280,14 +280,18 @@ public final class MainActivity extends FragmentActivity {
         if (onboarding.active()) return;
         if (!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
         dismissAnalyticsMenu();
-        analyticsMenu = new PopupMenu(this, anchor, Gravity.END);
-        analyticsMenu.getMenu().add(0, R.id.analytics_graph, 0, R.string.mood_graph);
-        analyticsMenu.getMenu().add(0, R.id.analytics_analysis, 1, R.string.mood_analysis);
-        analyticsMenu.setOnMenuItemClickListener(item -> {
-            if (!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return false;
-            openAnalytics(item.getItemId() == R.id.analytics_analysis ? 1 : 0); return true;
+        int selected = currentTab == HISTORY && settingsPage == SettingsScreen.NONE ? analyticsMode : -1;
+        View root = findViewById(R.id.app_root);
+        ListPopupWindow menu = AnalyticsMenu.create(this, anchor, selected,
+                root.getWidth() > 0 ? root.getWidth() : getResources().getDisplayMetrics().widthPixels);
+        analyticsMenu = menu;
+        menu.setOnItemClickListener((parent, view, position, id) -> {
+            if (analyticsMenu != menu || !menu.isShowing()
+                    || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
+            openAnalytics(position == 1 ? 1 : 0);
         });
-        analyticsMenu.show();
+        menu.setOnDismissListener(() -> { if (analyticsMenu == menu) analyticsMenu = null; });
+        menu.show(); AnalyticsMenu.decorate(menu);
     }
     private void openAnalytics(int mode) {
         dismissAnalyticsMenu(); analysis.onLeave();

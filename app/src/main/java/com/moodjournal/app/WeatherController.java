@@ -6,6 +6,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -95,13 +100,13 @@ final class WeatherController {
         WeatherClient.Place place = repository.place();
         TextView location = label(place == null ? activity.getString(R.string.weather_no_location) : place.name(), 18);
         location.setId(R.id.weather_location); add(page, location, 22);
-        add(page, button(R.string.weather_use_location, R.id.weather_use_location, () -> {
+        add(page, button(R.string.weather_use_location, R.id.weather_use_location, true, android.R.drawable.ic_menu_mylocation, () -> {
             if (!visible.getAsBoolean()) return;
             if (hasLocationPermission()) locate(); else permission.launch(Manifest.permission.ACCESS_COARSE_LOCATION);
         }), 12);
-        add(page, button(R.string.weather_choose_city, R.id.weather_choose_city, this::chooseCity), 8);
-        Button refresh = button(R.string.weather_refresh, R.id.weather_refresh, () -> refresh(true)); refresh.setEnabled(place != null && !loading);
-        add(page, refresh, 8);
+        add(page, button(R.string.weather_choose_city, R.id.weather_choose_city, false, android.R.drawable.ic_menu_search, this::chooseCity), 12);
+        Button refresh = button(R.string.weather_refresh, R.id.weather_refresh, false, android.R.drawable.ic_popup_sync, () -> refresh(true)); refresh.setEnabled(place != null && !loading);
+        add(page, refresh, 12);
         WeatherSnapshot snapshot = repository.current(System.currentTimeMillis());
         if (snapshot != null) add(page, label(snapshot.summary(WeatherReflection.fahrenheit(activity)), 16), 18);
         TextView message = label(status == 0 ? "" : activity.getString(status), 14); message.setId(R.id.weather_status);
@@ -220,9 +225,26 @@ final class WeatherController {
     private TextView label(String text, int size) {
         TextView view = new TextView(activity); view.setText(text); view.setTextSize(size); view.setTextColor(Appearance.color(activity, 0xFF312B35)); return view;
     }
-    private Button button(int text, int id, Runnable action) {
-        Button button = new Button(activity); button.setId(id); button.setText(text); button.setAllCaps(false); button.setMinHeight(dp(52));
-        button.setTextColor(Appearance.color(activity, 0xFF705180)); button.setOnClickListener(v -> { if (visible.getAsBoolean()) action.run(); }); return button;
+    private Button button(int text, int id, boolean primary, int icon, Runnable action) {
+        Button button = new Button(activity); button.setId(id); button.setText(text); button.setAllCaps(false);
+        button.setTextSize(16); button.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        button.setMinHeight(dp(60)); button.setMinimumHeight(dp(60)); button.setMinWidth(0); button.setMinimumWidth(0);
+        button.setPadding(dp(18), dp(14), dp(18), dp(14)); button.setBackgroundTintList(null); button.setStateListAnimator(null);
+        int accent = Appearance.color(activity, 0xFF705180), soft = Appearance.color(activity, 0xFFEDE6F1);
+        button.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled}, new int[]{}},
+                new int[]{Appearance.color(activity, 0xFF6D6470), primary ? Appearance.onAccent(activity) : accent}));
+        StateListDrawable surface = new StateListDrawable();
+        surface.addState(new int[]{-android.R.attr.state_enabled}, surface(soft));
+        surface.addState(new int[]{}, surface(primary ? accent : soft));
+        int ripple = primary ? (Appearance.isDark(activity) ? 0x242C1737 : 0x33FFFFFF) : (accent & 0x00FFFFFF) | 0x22000000;
+        button.setBackground(new RippleDrawable(ColorStateList.valueOf(ripple), surface, surface(0xFFFFFFFF)));
+        Drawable symbol = activity.getDrawable(icon).mutate(); symbol.setTintList(button.getTextColors());
+        symbol.setBounds(0, 0, dp(24), dp(24)); button.setCompoundDrawablesRelative(symbol, null, null, null);
+        button.setCompoundDrawablePadding(dp(12));
+        button.setOnClickListener(v -> { if (visible.getAsBoolean()) action.run(); }); return button;
+    }
+    private GradientDrawable surface(int color) {
+        GradientDrawable shape = new GradientDrawable(); shape.setColor(color); shape.setCornerRadius(dp(18)); return shape;
     }
     private void add(LinearLayout parent, View view, int margin) { LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2); params.topMargin = dp(margin); parent.addView(view, params); }
     private int dp(int value) { return Math.round(value * activity.getResources().getDisplayMetrics().density); }

@@ -94,7 +94,7 @@ public class OnboardingTest {
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup()) {
             c.get().findViewById(R.id.welcome_tour).performClick(); c.get().findViewById(R.id.tour_skip).performClick();
             c.get().findViewById(R.id.history_tab).performClick();
-            org.robolectric.shadows.ShadowPopupMenu.getLatestPopupMenu().getMenu().performIdentifierAction(R.id.analytics_graph, 0);
+            AnalyticsTestSupport.choose(AnalyticsTestSupport.menu(c.get()), R.id.analytics_graph);
             assertNotNull(c.get().findViewById(R.id.unlock_submit));
         }
         assertEquals(OnboardingState.COMPLETE, new OnboardingState(context).step());

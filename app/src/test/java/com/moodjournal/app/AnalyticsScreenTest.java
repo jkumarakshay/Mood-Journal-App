@@ -4,7 +4,7 @@ import static org.junit.Assert.*;
 import android.content.Context;
 import android.os.Looper;
 import android.view.View;
-import android.widget.PopupMenu;
+import android.widget.ListPopupWindow;
 import android.widget.TextView;
 import java.time.ZoneId;
 import org.junit.Before;
@@ -16,7 +16,6 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
-import org.robolectric.shadows.ShadowPopupMenu;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=35)
@@ -29,8 +28,8 @@ public class AnalyticsScreenTest {
     @Test public void tabShowsTwoMenuChoicesAndProtectsBothViews() {
         try(ActivityController<MainActivity> c=Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity a=c.get();assertEquals("Analytics",((TextView)a.findViewById(R.id.history_tab)).getText().toString());
-            a.findViewById(R.id.history_tab).performClick();PopupMenu menu=ShadowPopupMenu.getLatestPopupMenu();
-            assertEquals(2,menu.getMenu().size());assertEquals("Mood Graph",menu.getMenu().getItem(0).getTitle());assertEquals("Mood Analysis",menu.getMenu().getItem(1).getTitle());menu.dismiss();
+            a.findViewById(R.id.history_tab).performClick();ListPopupWindow menu=AnalyticsTestSupport.menu(a);
+            assertEquals(2,menu.getListView().getAdapter().getCount());assertEquals("Mood Graph",menu.getListView().getAdapter().getItem(0));assertEquals("Mood Analysis",menu.getListView().getAdapter().getItem(1));menu.dismiss();
             assertNotNull(a.findViewById(R.id.save_entry));
             AnalyticsTestSupport.analysis(a);assertNull(a.findViewById(R.id.analysis_title));assertNotNull(a.findViewById(R.id.unlock_submit));
             JournalTest.unlockJournal(a);assertNotNull(a.findViewById(R.id.analysis_title));
@@ -59,9 +58,29 @@ public class AnalyticsScreenTest {
     }
     @Test public void dismissedMenuCannotNavigateWhileBackgrounded() {
         try(ActivityController<MainActivity> c=Robolectric.buildActivity(MainActivity.class).setup()) {
-            MainActivity a=c.get();a.findViewById(R.id.history_tab).performClick();PopupMenu menu=ShadowPopupMenu.getLatestPopupMenu();c.pause();
-            assertFalse(Shadows.shadowOf(menu).getOnMenuItemClickListener().onMenuItemClick(menu.getMenu().findItem(R.id.analytics_analysis)));
+            MainActivity a=c.get();a.findViewById(R.id.history_tab).performClick();ListPopupWindow menu=AnalyticsTestSupport.menu(a);
+            android.widget.AdapterView.OnItemClickListener stale=menu.getListView().getOnItemClickListener();c.pause();
+            assertFalse(menu.isShowing());
+            stale.onItemClick(null,null,1,R.id.analytics_analysis);
             assertNull(a.findViewById(R.id.analysis_title));
+            assertNotNull(a.findViewById(R.id.save_entry));
+        }
+    }
+    @Test public void dismissedMenuCannotNavigateAfterReturningToForeground() {
+        try(ActivityController<MainActivity> c=Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity a=c.get();a.findViewById(R.id.history_tab).performClick();ListPopupWindow menu=AnalyticsTestSupport.menu(a);
+            android.widget.AdapterView.OnItemClickListener stale=menu.getListView().getOnItemClickListener();
+            menu.dismiss();stale.onItemClick(null,null,1,R.id.analytics_analysis);
+            assertNotNull(a.findViewById(R.id.save_entry));assertNull(a.findViewById(R.id.unlock_submit));
+            AnalyticsTestSupport.graph(a);assertNotNull(a.findViewById(R.id.unlock_submit));
+        }
+    }
+    @Test @Config(sdk=26) public void menuWorksOnAndroidEightWithoutBypassingAuthentication() {
+        try(ActivityController<MainActivity> c=Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity a=c.get();AnalyticsTestSupport.graph(a);assertNotNull(a.findViewById(R.id.unlock_submit));
+            JournalTest.unlockJournal(a);assertNotNull(a.findViewById(R.id.mood_chart));
+            a.findViewById(R.id.analytics_selector).performClick();AnalyticsTestSupport.choose(AnalyticsTestSupport.menu(a),R.id.analytics_analysis);
+            assertNotNull(a.findViewById(R.id.analysis_title));assertNull(a.findViewById(R.id.unlock_submit));
         }
     }
     static void await(MainActivity a,int id,String expected) throws Exception {

@@ -18,6 +18,10 @@
     <string name="mood_graph">Mood Graph</string>
     <string name="mood_analysis">Mood Analysis</string>
     <string name="analytics_choose_view">Choose Mood Graph or Mood Analysis</string>
+    <string name="analytics_menu_heading">DAILY PAUSE / ANALYTICS</string>
+    <string name="analytics_graph_description">See your mood over time</string>
+    <string name="analytics_analysis_description">Notice patterns across your days</string>
+    <string name="analytics_current_view">Current view</string>
     <string name="analysis_brand">DAILY PAUSE  /  GETTING TO KNOW YOUR PATTERNS</string>
     <string name="analysis_intro">A gentle look at what tends to accompany your higher and lower moods. Your journals are analyzed on this device.</string>
     <string name="analysis_loading">Looking through your recorded days…</string>

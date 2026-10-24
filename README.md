@@ -52,7 +52,7 @@ The package ID and signing key must remain the same to preserve journals, Heaps,
 
 ### Publishing an update
 
-Install a version containing the updater once to enable it; older APKs do not yet contain it. This version uses app version **1.5.1 / versionCode 8**. For each subsequent release, increase `versionCode` in `app/build.gradle` and set a stable `major.minor.patch` `versionName` (for example `1.5.2 / 9` or `1.6.0 / 10`). APK commit-count filenames remain independent of these installed version values.
+Install a version containing the updater once to enable it; older APKs do not yet contain it. This version uses app version **1.5.2 / versionCode 9**. For each subsequent release, increase `versionCode` in `app/build.gradle` and set a stable `major.minor.patch` `versionName` (for example `1.5.3 / 10` or `1.6.0 / 11`). APK commit-count filenames remain independent of these installed version values.
 
 1. Build and test the APK with the **same existing signing key**. Keep that key outside the public repository. A fresh CI-generated debug key will not update existing installations.
 2. Run `python3 scripts/create-update-manifest.py path/to/Daily-Pause.apk` with `ANDROID_HOME` set, or pass `--build-tools /path/to/sdk/build-tools/35.0.0`. The helper verifies the APK signature and reads its actual package/version/SDK, then writes `daily-pause-update.json` beside it with its size and SHA-256.
@@ -116,7 +116,7 @@ Backup format version 1 is binary: 8-byte ASCII `DPAUSE01`, 16-byte random salt,
 
 ## Analytics
 
-Tap **Analytics** in the bottom navigation to open a dropdown with **Mood Graph** and **Mood Analysis**. Both views use the existing journal PIN/biometric gate. Switching between these two views keeps the current Analytics unlock; leaving Analytics, opening Settings, backgrounding or recreating the activity locks it again. The selected view and graph range survive recreation without preserving an unlocked state.
+Tap **Analytics** in the bottom navigation to open a rounded, themed dropdown with **Mood Graph** and **Mood Analysis**, matching icons and brief descriptions. The current Analytics view has a lavender highlight and checkmark. The same menu opens from the view selector; it supports keyboard navigation and both light and dark themes. Both views use the existing journal PIN/biometric gate. Switching between these two views keeps the current Analytics unlock; leaving Analytics, opening Settings, backgrounding or recreating the activity locks it again. The selected view and graph range survive recreation without preserving an unlocked state.
 
 ### Mood Graph
 
