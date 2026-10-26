@@ -77,6 +77,10 @@ final class JournalExport {
                     if (heap != null) {
                         pages.gap(4);
                         pages.text("Category: " + (heap.category().isEmpty() ? "Uncategorized" : heap.category()), 11, false, false, 0xFF6D6470);
+                        if (!heap.description().isEmpty()) {
+                            pages.gap(4);
+                            pages.text("Description: " + heap.description(), 11, false, false, 0xFF6D6470);
+                        }
                     }
                     pages.gap(12);
                     pages.section("What was on your mind", entry.event());

@@ -45,6 +45,14 @@ public class JournalExportTest {
             if (document.images.get(0).getPixel(x, y) != android.graphics.Color.WHITE) ink++;
         assertTrue("Journal content must actually be drawn", ink > 1000);
     }
+    @Test public void heapDescriptionAppearsInPdfMetadataWithoutMakingEmptyEntriesExportable() throws Exception {
+        JournalExport.writePdf(new ByteArrayOutputStream(),List.of(entry(1,"A thought")),heap);
+        android.graphics.Bitmap before=RecordingPdfDocument.last().images.get(0);
+        JournalHeap described=new JournalHeap(heap.id(),heap.name(),heap.category(),heap.color(),"A private purpose for this Heap.");
+        JournalExport.writePdf(new ByteArrayOutputStream(),List.of(entry(1,"A thought")),described);
+        assertFalse(before.sameAs(RecordingPdfDocument.last().images.get(0)));
+        assertThrows(IOException.class,()->JournalExport.writePdf(new ByteArrayOutputStream(),List.of(empty()),described));
+    }
 
     @Test public void longAnswersWrapAcrossPagesAndNextJournalGetsAFreshPage() throws Exception {
         String longText = "A thought to give a little space. ".repeat(620) + "\nThe final thought.";

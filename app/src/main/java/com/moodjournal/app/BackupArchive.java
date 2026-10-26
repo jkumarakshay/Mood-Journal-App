@@ -25,6 +25,7 @@ final class BackupArchive {
     private static final byte[] MAGIC = "DPAUSE01".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] HEAPS_MAGIC = "DPAUSE02".getBytes(StandardCharsets.US_ASCII);
     private static final byte[] WEATHER_MAGIC = "DPAUSE03".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] DESCRIPTION_MAGIC = "DPAUSE04".getBytes(StandardCharsets.US_ASCII);
     private static final int HEADER_SIZE = 36, TAG_SIZE = 16, ITERATIONS = 600_000;
     static final int MAX_BYTES = 20 * 1024 * 1024;
     static final int MAX_ENTRIES = 50_000;
@@ -55,7 +56,8 @@ final class BackupArchive {
 
     private static byte[] encrypt(Snapshot snapshot, char[] password, boolean withHeaps) throws IOException, GeneralSecurityException {
         List<Entry> entries = snapshot.entries();
-        boolean withWeather = entries.stream().anyMatch(entry -> entry.weatherAnswer() != 0 || entry.weather() != null);
+        boolean withDescriptions = snapshot.heaps().stream().anyMatch(heap -> !heap.description().isEmpty());
+        boolean withWeather = withDescriptions || entries.stream().anyMatch(entry -> entry.weatherAnswer() != 0 || entry.weather() != null);
         boolean heapFormat = withHeaps || withWeather;
         if (!validPassphrase(password)) throw new IllegalArgumentException("Use a passphrase of 12 to 256 characters");
         if (entries.size() > MAX_ENTRIES) throw new IOException("Backup has too many entries");
@@ -64,7 +66,7 @@ final class BackupArchive {
         for (JournalHeap heap : snapshot.heaps()) if (!heapIds.add(heap.id())) throw new IOException("Duplicate Heap ID");
         byte[] header = new byte[HEADER_SIZE];
         new SecureRandom().nextBytes(header);
-        System.arraycopy(withWeather ? WEATHER_MAGIC : withHeaps ? HEAPS_MAGIC : MAGIC, 0, header, 0, MAGIC.length);
+        System.arraycopy(withDescriptions ? DESCRIPTION_MAGIC : withWeather ? WEATHER_MAGIC : withHeaps ? HEAPS_MAGIC : MAGIC, 0, header, 0, MAGIC.length);
         Cipher cipher = cipher(Cipher.ENCRYPT_MODE, password, header);
         try (WipingBuffer buffer = new WipingBuffer(); DataOutputStream out = new DataOutputStream(buffer)) {
             if (heapFormat) {
@@ -72,6 +74,7 @@ final class BackupArchive {
                 for (JournalHeap heap : snapshot.heaps()) {
                     writeText(out, heap.id()); writeText(out, heap.name()); writeText(out, heap.category());
                     out.writeInt(heap.color() == null ? 0 : heap.color());
+                    if (withDescriptions) writeText(out, heap.description());
                     if (buffer.size() > MAX_BYTES - HEADER_SIZE - TAG_SIZE) throw new IOException("Backup exceeds 20 MB");
                 }
             }
@@ -105,7 +108,8 @@ final class BackupArchive {
     static Snapshot decryptSnapshot(byte[] archive, char[] password) throws IOException, GeneralSecurityException {
         if (!validPassphrase(password)) throw new IllegalArgumentException("Invalid passphrase length");
         if (archive.length < HEADER_SIZE + TAG_SIZE || archive.length > MAX_BYTES) throw new IOException("Invalid backup size");
-        boolean withWeather = Arrays.equals(Arrays.copyOf(archive, 8), WEATHER_MAGIC);
+        boolean withDescriptions = Arrays.equals(Arrays.copyOf(archive, 8), DESCRIPTION_MAGIC);
+        boolean withWeather = withDescriptions || Arrays.equals(Arrays.copyOf(archive, 8), WEATHER_MAGIC);
         boolean withHeaps = withWeather || Arrays.equals(Arrays.copyOf(archive, 8), HEAPS_MAGIC);
         if (!withHeaps && !Arrays.equals(Arrays.copyOf(archive, 8), MAGIC)) throw new IOException("Unsupported backup format");
         byte[] header = Arrays.copyOf(archive, HEADER_SIZE);
@@ -119,7 +123,8 @@ final class BackupArchive {
                 for (int i = 0; i < heapCount; i++) {
                     String id = readText(in), name = readText(in), category = readText(in);
                     int color = in.readInt();
-                    try { heaps.add(new JournalHeap(id, name, category, color == 0 ? null : color)); }
+                    String description = withDescriptions ? readText(in) : "";
+                    try { heaps.add(new JournalHeap(id, name, category, color == 0 ? null : color, description)); }
                     catch (IllegalArgumentException e) { throw new IOException("Invalid Heap", e); }
                     if (!heapIds.add(id)) throw new IOException("Duplicate Heap ID");
                 }

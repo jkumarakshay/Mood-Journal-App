@@ -82,8 +82,9 @@ final class JournalScreen {
             back.setOnClickListener(v -> { activeHeap = null; category = null; outsideOnly = false; refresh.run(); });
             add(page, back, 12);
             LinearLayout title = card(heap.color());
-            add(title, optionsRow(text(heap.name(), 24, true), exports.heapMenu(heap, entries)), 0);
+            add(title, optionsRow(text(heap.name(), 24, true), exports.heapMenu(heap, entries, () -> editHeap(heap))), 0);
             add(title, text(heap.category().isEmpty() ? "Uncategorized" : heap.category(), 14, false), 8);
+            if (!heap.description().isEmpty()) add(title, text(heap.description(), 15, false), 12);
             customHeapText(title, heap.color());
             add(page, title, 16);
         } else {
@@ -124,7 +125,12 @@ final class JournalScreen {
                     folder.setOnClickListener(v -> { activeHeap = heap.id(); refresh.run(); });
                     LinearLayout folderCard = card(heap.color());
                     folderCard.setPadding(dp(8), dp(8), dp(8), dp(8));
-                    add(folderCard, optionsRow(folder, exports.heapMenu(heap, entries)), 0);
+                    add(folderCard, optionsRow(folder, exports.heapMenu(heap, entries, () -> editHeap(heap))), 0);
+                    if (!heap.description().isEmpty()) {
+                        TextView description = text(heap.description(), 14, false);
+                        description.setMaxLines(2); description.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                        add(folderCard, description, 8);
+                    }
                     customHeapText(folderCard, heap.color());
                     add(page, folderCard, 10);
                 }
@@ -144,7 +150,7 @@ final class JournalScreen {
             shown++;
             LinearLayout card = card(heap == null ? null : heap.color());
             card.setTag(entry.id());
-            add(card, optionsRow(text(heap == null ? "Outside Heaps" : "Heap: " + heap.name(), 14, true), exports.entryMenu(entry, heap)), 0);
+            add(card, optionsRow(text(heap == null ? "Outside Heaps" : "Heap: " + heap.name(), 14, true), exports.entryMenu(entry, heap, () -> editEntry(entry))), 0);
             add(card, text(new SimpleDateFormat("MMM d, yyyy  ·  h:mm a", Locale.getDefault()).format(new Date(entry.createdAt())), 12, false), 8);
             add(card, text(MOODS[entry.mood()], 21, true), 12);
             String excerpt = !entry.event().isEmpty() ? entry.event() : !entry.thoughts().isEmpty() ? entry.thoughts() : entry.needs();
@@ -188,34 +194,99 @@ final class JournalScreen {
         if (!authorized.getAsBoolean()) return;
         if (activity.getSharedPreferences("heap_notices", Context.MODE_PRIVATE).getBoolean("created", false)) { newHeap(saved, cancelled); return; }
         showDialog.accept(AppDialogs.builder(activity).setTitle("A little space for each part of life")
-                .setMessage("A Heap is a folder for journals about a particular topic, concern, or facet of your life—such as work, relationships, or personal growth.\n\nCreating Heaps helps compartmentalize your thoughts, which can help clear your mind further. You can also keep journals outside all Heaps.\n\nGive your Heap a name. A category and color profile are optional.")
+                .setMessage("A Heap is a folder for journals about a particular topic, concern, or facet of your life—such as work, relationships, or personal growth.\n\nCreating Heaps helps compartmentalize your thoughts, which can help clear your mind further. You can also keep journals outside all Heaps.\n\nGive your Heap a name. A category, description and color profile are optional.")
                 .setNegativeButton("Maybe later", (d, w) -> cancelled.run())
                 .setOnCancelListener(d -> cancelled.run())
                 .setPositiveButton("Create a Heap", (d, w) -> { if (authorized.getAsBoolean()) newHeap(saved, cancelled); }).create());
     }
 
     private void newHeap(Consumer<JournalHeap> saved, Runnable cancelled) {
+        heapForm(null, saved, cancelled);
+    }
+
+    private void editHeap(JournalHeap original) {
+        if (!authorized.getAsBoolean()) return;
+        try {
+            JournalHeap current = store.heap(original.id());
+            if (current == null) { Toast.makeText(activity, R.string.edit_heap_missing, Toast.LENGTH_LONG).show(); refresh.run(); return; }
+            heapForm(current, heap -> refresh.run(), () -> {});
+        } catch (android.database.SQLException e) { Toast.makeText(activity, R.string.edit_heap_failed, Toast.LENGTH_LONG).show(); }
+    }
+
+    private void heapForm(JournalHeap existing, Consumer<JournalHeap> saved, Runnable cancelled) {
+        if (!authorized.getAsBoolean()) return;
         LinearLayout form = form();
-        EditText name = field(form, "Heap name (required)", R.id.heap_name, "", 100, false);
-        EditText categoryField = field(form, "Category (optional)", R.id.heap_category, "", 60, false);
+        EditText name = field(form, "Heap name (required)", R.id.heap_name, existing == null ? "" : existing.name(), 100, false);
+        EditText categoryField = field(form, "Category (optional)", R.id.heap_category, existing == null ? "" : existing.category(), 60, false);
+        EditText description = field(form, activity.getString(R.string.heap_description_label), R.id.heap_description,
+                existing == null ? "" : existing.description(), JournalHeap.MAX_DESCRIPTION, true);
         add(form, text("Color profile (optional)", 14, true), 12);
         HeapColorPicker color = new HeapColorPicker(activity); color.setId(R.id.heap_color);
+        if (existing != null) color.setColor(existing.color());
         add(form, color, 4);
         TextView error = error(form);
-        AlertDialog dialog = AppDialogs.builder(activity).setTitle("New Heap").setView(scroll(form))
+        AlertDialog dialog = AppDialogs.builder(activity).setTitle(existing == null ? activity.getString(R.string.heap_new_title) : activity.getString(R.string.edit_heap_title)).setView(scroll(form))
                 .setNegativeButton("Cancel", (d, w) -> cancelled.run())
-                .setOnCancelListener(d -> cancelled.run()).setPositiveButton("Create Heap", null).create();
+                .setOnCancelListener(d -> cancelled.run()).setPositiveButton(existing == null ? R.string.heap_create : R.string.edit_save_changes, null).create();
+        if (existing != null) dialog.setOnDismissListener(d -> {
+            name.setText(""); categoryField.setText(""); description.setText(""); color.setColor(null);
+        });
         showDialog.accept(dialog);
+        if (existing != null) dialog.getButton(AlertDialog.BUTTON_POSITIVE).setId(R.id.edit_save_changes);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            if (!authorized.getAsBoolean()) { dialog.dismiss(); return; }
+            if (!dialog.isShowing() || !authorized.getAsBoolean()) { dialog.dismiss(); return; }
             if (!color.isValid()) { error.setText(R.string.heap_color_invalid); color.focusCode(); return; }
             try {
-                JournalHeap heap = store.addHeap(name.getText().toString(), categoryField.getText().toString(),
-                        color.getColor());
-                activity.getSharedPreferences("heap_notices", Context.MODE_PRIVATE).edit().putBoolean("created", true).apply();
+                JournalHeap heap;
+                if (existing == null) {
+                    heap = store.addHeap(name.getText().toString(), categoryField.getText().toString(), color.getColor(), description.getText().toString());
+                    activity.getSharedPreferences("heap_notices", Context.MODE_PRIVATE).edit().putBoolean("created", true).apply();
+                } else {
+                    heap = new JournalHeap(existing.id(), name.getText().toString(), categoryField.getText().toString(), color.getColor(), description.getText().toString());
+                    if (!store.updateHeap(heap.id(), heap.name(), heap.category(), heap.color(), heap.description())) {
+                        error.setText(R.string.edit_heap_missing); return;
+                    }
+                }
                 dialog.dismiss(); saved.accept(heap);
             } catch (IllegalArgumentException e) { error.setText(e.getMessage()); name.requestFocus(); }
-            catch (android.database.SQLException e) { error.setText("Couldn’t save this Heap. Check device storage and try again."); }
+            catch (android.database.SQLException e) { error.setText(R.string.edit_heap_failed); }
+        });
+    }
+
+    void editEntry(JournalStore.Entry original) {
+        if (!authorized.getAsBoolean()) return;
+        JournalStore.Entry entry;
+        List<JournalHeap> heaps;
+        try { entry = store.entry(original.id()); heaps = store.heaps(); }
+        catch (android.database.SQLException e) { Toast.makeText(activity, R.string.edit_entry_failed, Toast.LENGTH_LONG).show(); return; }
+        if (entry == null) { Toast.makeText(activity, R.string.edit_entry_missing, Toast.LENGTH_LONG).show(); refresh.run(); return; }
+        LinearLayout form = form();
+        add(form, text("How are you feeling?", 16, true), 0);
+        Spinner mood = spinner(java.util.Arrays.asList(MOODS), R.id.journal_entry_mood); mood.setSelection(entry.mood()); add(form, mood, 4);
+        EditText event = field(form, "What’s on your mind? (optional)", R.id.journal_entry_event, entry.event(), 20000, true);
+        EditText thoughts = field(form, "Thoughts & feelings (optional)", R.id.journal_entry_thoughts, entry.thoughts(), 20000, true);
+        EditText needs = field(form, "What would help? (optional)", R.id.journal_entry_needs, entry.needs(), 20000, true);
+        add(form, text("Save in", 14, true), 12);
+        Spinner destination = destinations(heaps, entry.heapId()); add(form, destination, 4);
+        if (entry.weather() != null) add(form, text(entry.weather().summary(WeatherReflection.fahrenheit(activity)), 13, false), 12);
+        add(form, text(activity.getString(R.string.edit_save_note), 12, false), 12);
+        TextView error = error(form);
+        AlertDialog dialog = AppDialogs.builder(activity).setTitle(R.string.edit_entry_title).setView(scroll(form))
+                .setNegativeButton(android.R.string.cancel, null).setPositiveButton(R.string.edit_save_changes, null).create();
+        dialog.setOnDismissListener(d -> { event.setText(""); thoughts.setText(""); needs.setText(""); });
+        showDialog.accept(dialog);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setId(R.id.edit_save_changes);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            if (!dialog.isShowing() || !authorized.getAsBoolean()) { dialog.dismiss(); return; }
+            if (mood.getSelectedItemPosition() == 0) { error.setText(R.string.edit_choose_mood); return; }
+            try {
+                if (!store.updateEntry(entry.id(), mood.getSelectedItemPosition(), event.getText().toString(),
+                        thoughts.getText().toString(), needs.getText().toString(), destinationId(destination, heaps))) {
+                    error.setText(R.string.edit_entry_missing); return;
+                }
+                dialog.dismiss(); refresh.run();
+            } catch (IllegalArgumentException e) { error.setText(e.getMessage()); }
+            catch (android.database.SQLException e) { error.setText(R.string.edit_entry_failed); }
         });
     }
 

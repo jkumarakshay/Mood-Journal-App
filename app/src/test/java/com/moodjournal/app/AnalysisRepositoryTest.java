@@ -73,6 +73,19 @@ public class AnalysisRepositoryTest {
         }
         assertEquals(now+2000, repository.review(now+2000,zone).generatedAt());
     }
+    @Test public void editingJournalOrHeapInvalidatesTheWeeklyReportImmediately() throws Exception {
+        seed(context,now,zone,30); AnalysisRepository repository=new AnalysisRepository(context);
+        JournalHeap heap;
+        try(JournalStore store=new JournalStore(context)) { heap=store.addHeap("Work","Career",null); }
+        repository.review(now,zone); assertNotNull(cachedText());
+        try(JournalStore store=new JournalStore(context)) {
+            JournalStore.Entry entry=store.all().get(0);
+            store.updateEntry(entry.id(),5,"An edited reflection","Feeling better","",entry.heapId());
+        }
+        assertNull(cachedText()); assertEquals(now+1000,repository.review(now+1000,zone).generatedAt());
+        try(JournalStore store=new JournalStore(context)) { store.updateHeap(heap.id(),"Learning","Growth",null,"A new purpose"); }
+        assertNull(cachedText()); assertEquals(now+2000,repository.review(now+2000,zone).generatedAt());
+    }
     @Test public void jobsArePersistedBatteryAwareAndNeedNoNetwork() throws Exception {
         seed(context,now,zone,40); MoodAnalysis.Report report = new AnalysisRepository(context).review(now,zone);
         AnalysisScheduler.next(context,report); JobInfo job = context.getSystemService(JobScheduler.class).getPendingJob(AnalysisScheduler.JOB_ID);
@@ -92,7 +105,7 @@ public class AnalysisRepositoryTest {
             db.execSQL("DROP TABLE analytics_cache");db.execSQL("DROP TABLE analytics_meta");db.setVersion(3);
         }
         try (JournalStore upgraded = new JournalStore(context)) {
-            assertEquals(4,upgraded.getReadableDatabase().getVersion()); assertEquals(1,upgraded.heaps().size());
+            assertEquals(5,upgraded.getReadableDatabase().getVersion()); assertEquals(1,upgraded.heaps().size());
             JournalStore.Entry entry=upgraded.all().get(0); assertEquals(3,entry.weatherAnswer()); assertNotNull(entry.weather()); assertNotNull(entry.heapId());
             assertEquals(1,upgraded.backupSnapshot().entries().size());
         }

@@ -566,7 +566,7 @@ public final class MainActivity extends FragmentActivity {
         content.setPadding(dp(24), dp(12), dp(24), dp(12));
         JournalHeap heap = store.heaps().stream().filter(h -> h.id().equals(entry.heapId())).findFirst().orElse(null);
         add(content, journals.optionsRow(text(new SimpleDateFormat("MMMM d, yyyy · h:mm a", Locale.getDefault()).format(new Date(entry.createdAt())), 13, MUTED, false),
-                exports.entryMenu(entry, heap)), 0);
+                exports.entryMenu(entry, heap, () -> journals.editEntry(entry))), 0);
         detail(content, "What was on your mind", entry.event());
         detail(content, "Thoughts & feelings", entry.thoughts());
         detail(content, "What you needed", entry.needs());
@@ -600,6 +600,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void showPrivateDialog(AlertDialog dialog) {
+        if (privateDialog != null && privateDialog != dialog) privateDialog.dismiss();
         privateDialog = dialog;
         privateDialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         privateDialog.show();

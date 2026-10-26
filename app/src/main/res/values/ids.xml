@@ -1,4 +1,7 @@
 <resources>
+    <item name="edit_action" type="id" />
+    <item name="edit_save_changes" type="id" />
+    <item name="heap_description" type="id" />
     <item name="unlock_use_pin" type="id" />
     <item name="pin_dialog_submit" type="id" />
     <item name="pin_dialog_status" type="id" />

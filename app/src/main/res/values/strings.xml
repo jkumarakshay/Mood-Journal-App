@@ -1,4 +1,17 @@
 <resources>
+    <string name="edit_action">Edit</string>
+    <string name="edit_save_changes">Save Changes</string>
+    <string name="edit_entry_title">Edit journal entry</string>
+    <string name="edit_heap_title">Edit Heap</string>
+    <string name="heap_description_label">Description (optional)</string>
+    <string name="heap_new_title">New Heap</string>
+    <string name="heap_create">Create Heap</string>
+    <string name="edit_choose_mood">Choose the mood that feels closest first.</string>
+    <string name="edit_save_note">Changes are saved only when you tap Save Changes. Your original date and recorded weather stay the same.</string>
+    <string name="edit_entry_missing">This journal entry no longer exists. Your changes have not been saved.</string>
+    <string name="edit_heap_missing">This Heap no longer exists. Your changes have not been saved.</string>
+    <string name="edit_entry_failed">Couldn’t save your changes. Your original journal is unchanged. Check device storage and try again.</string>
+    <string name="edit_heap_failed">Couldn’t save this Heap. Check device storage and try again.</string>
     <string name="heap_choose_color">Choose color</string>
     <string name="heap_hide_color">Hide picker</string>
     <string name="heap_color_help">Drag around the circle to choose a color. Move toward the center for a softer shade.</string>
@@ -66,7 +79,7 @@
     <string name="export_heap_title">Export Heap</string>
     <string name="export_zip">Export as zip</string>
     <string name="export_collated">Export as collated PDF</string>
-    <string name="export_readable_note">Use the three-dot menu to export journals as readable PDFs or ZIP files. These files do not use backup encryption. Journals without writing or a weather answer are excluded.</string>
+    <string name="export_readable_note">Use the three-dot menu to edit journals and Heaps, or export journals as readable PDFs or ZIP files. These files do not use backup encryption. Journals without writing or a weather answer are excluded.</string>
     <string name="export_saving">Saving your export…</string>
     <string name="export_saved">Export saved to the selected location.</string>
     <string name="export_cancelled">Export cancelled.</string>
@@ -172,7 +185,7 @@ for you.</string>
     <string name="tour_journal_title">My Journal</string>
     <string name="tour_journal_body">Come here to revisit your reflections. Keep entries on their own or organize them into Heaps by topic, concern, or facet of life. Your PIN or enrolled biometrics protects this private space.</string>
     <string name="tour_add_title">Add a journal or a Heap</string>
-    <string name="tour_add_body">The + button offers a new journal entry or a new Heap. Give a Heap a name, with an optional category and color. Heaps help compartmentalize thoughts and clear a little more room in your mind.</string>
+    <string name="tour_add_body">The + button offers a new journal entry or a new Heap. Give a Heap a name, with an optional category, description and color. Heaps help compartmentalize thoughts and clear a little more room in your mind.</string>
     <string name="tour_analytics_title">Notice your patterns</string>
     <string name="tour_analytics_body">Analytics opens a menu with Mood Graph and Mood Analysis. Both stay behind your journal lock. Next, take a look at what each view can show you.</string>
     <string name="tour_graph_body">Mood Graph shows how your recorded moods move over time. Choose a week, month, three months, year, or custom date range. Multiple check-ins are averaged, and missing days stay as gaps.</string>

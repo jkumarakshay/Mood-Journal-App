@@ -17,12 +17,13 @@ final class JournalStore extends SQLiteOpenHelper {
         }
     }
 
-    JournalStore(Context context) { super(context, "journal.db", null, 4); }
+    JournalStore(Context context) { super(context, "journal.db", null, 5); }
 
     @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
 
     @Override public void onCreate(SQLiteDatabase db) {
         createHeaps(db);
+        addHeapDescription(db);
         db.execSQL("CREATE TABLE entries (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at INTEGER NOT NULL, "
                 + "mood INTEGER NOT NULL CHECK(mood BETWEEN 1 AND 5), event TEXT NOT NULL, "
                 + "thoughts TEXT NOT NULL, needs TEXT NOT NULL, heap_id TEXT REFERENCES heaps(id), "
@@ -31,7 +32,7 @@ final class JournalStore extends SQLiteOpenHelper {
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 1 || newVersion > 4 || oldVersion >= newVersion) throw new IllegalStateException("A journal migration is required; never discard entries.");
+        if (oldVersion < 1 || newVersion > 5 || oldVersion >= newVersion) throw new IllegalStateException("A journal migration is required; never discard entries.");
         if (oldVersion < 2) {
             createHeaps(db);
             db.execSQL("ALTER TABLE entries ADD COLUMN heap_id TEXT REFERENCES heaps(id)");
@@ -41,6 +42,14 @@ final class JournalStore extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE entries ADD COLUMN weather TEXT");
         }
         if (oldVersion < 4 && newVersion >= 4) createAnalysis(db);
+        if (oldVersion < 5 && newVersion >= 5) addHeapDescription(db);
+    }
+
+    private void addHeapDescription(SQLiteDatabase db) {
+        try (Cursor columns = db.rawQuery("PRAGMA table_info(heaps)", null)) {
+            while (columns.moveToNext()) if ("description".equals(columns.getString(1))) return;
+        }
+        db.execSQL("ALTER TABLE heaps ADD COLUMN description TEXT NOT NULL DEFAULT ''");
     }
 
     private void createAnalysis(SQLiteDatabase db) {
@@ -61,7 +70,11 @@ final class JournalStore extends SQLiteOpenHelper {
     }
 
     JournalHeap addHeap(String name, String category, Integer color) {
-        JournalHeap heap = new JournalHeap(java.util.UUID.randomUUID().toString(), name, category, color);
+        return addHeap(name, category, color, "");
+    }
+
+    JournalHeap addHeap(String name, String category, Integer color, String description) {
+        JournalHeap heap = new JournalHeap(java.util.UUID.randomUUID().toString(), name, category, color, description);
         insertHeap(getWritableDatabase(), heap);
         return heap;
     }
@@ -70,15 +83,29 @@ final class JournalStore extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put("id", heap.id()); values.put("name", heap.name()); values.put("category", heap.category());
         values.put("color", heap.color());
+        values.put("description", heap.description());
         db.insertOrThrow("heaps", null, values);
     }
 
     List<JournalHeap> heaps() {
         List<JournalHeap> result = new ArrayList<>();
-        try (Cursor c = getReadableDatabase().query("heaps", null, null, null, null, null, "name COLLATE NOCASE, id")) {
-            while (c.moveToNext()) result.add(new JournalHeap(c.getString(0), c.getString(1), c.getString(2), c.isNull(3) ? null : c.getInt(3)));
+        try (Cursor c = getReadableDatabase().query("heaps", new String[]{"id", "name", "category", "color", "description"}, null, null, null, null, "name COLLATE NOCASE, id")) {
+            while (c.moveToNext()) result.add(new JournalHeap(c.getString(0), c.getString(1), c.getString(2), c.isNull(3) ? null : c.getInt(3), c.getString(4)));
         }
         return result;
+    }
+
+    JournalHeap heap(String id) {
+        for (JournalHeap heap : heaps()) if (heap.id().equals(id)) return heap;
+        return null;
+    }
+
+    boolean updateHeap(String id, String name, String category, Integer color, String description) {
+        JournalHeap heap = new JournalHeap(id, name, category, color, description);
+        ContentValues values = new ContentValues();
+        values.put("name", heap.name()); values.put("category", heap.category());
+        values.put("color", heap.color()); values.put("description", heap.description());
+        return getWritableDatabase().update("heaps", values, "id = ?", new String[]{id}) == 1;
     }
 
     void move(long id, String heapId) {
@@ -115,6 +142,24 @@ final class JournalStore extends SQLiteOpenHelper {
                     c.getString(3), c.getString(4), c.getString(5), c.getString(6), c.getInt(7), WeatherSnapshot.decode(c.getString(8))));
         }
         return entries;
+    }
+
+    Entry entry(long id) {
+        try (Cursor c = getReadableDatabase().query("entries", null, "id = ?", new String[]{Long.toString(id)}, null, null, null)) {
+            return c.moveToFirst() ? new Entry(c.getLong(0), c.getLong(1), c.getInt(2), c.getString(3), c.getString(4),
+                    c.getString(5), c.getString(6), c.getInt(7), WeatherSnapshot.decode(c.getString(8))) : null;
+        }
+    }
+
+    /** Retain identity, original timestamp and recorded weather when editing a reflection. */
+    boolean updateEntry(long id, int mood, String event, String thoughts, String needs, String heapId) {
+        if (mood < 1 || mood > 5) throw new IllegalArgumentException("Choose a mood");
+        for (String text : new String[]{event, thoughts, needs})
+            if (text == null || text.length() > 20_000) throw new IllegalArgumentException("Use up to 20,000 characters per answer.");
+        ContentValues values = new ContentValues();
+        values.put("mood", mood); values.put("event", event.trim()); values.put("thoughts", thoughts.trim());
+        values.put("needs", needs.trim()); values.put("heap_id", heapId);
+        return getWritableDatabase().update("entries", values, "id = ?", new String[]{Long.toString(id)}) == 1;
     }
 
     void delete(long id) { getWritableDatabase().delete("entries", "id = ?", new String[]{Long.toString(id)}); }

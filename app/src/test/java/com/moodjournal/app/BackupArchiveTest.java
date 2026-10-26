@@ -95,4 +95,12 @@ public class BackupArchiveTest {
         archive[archive.length - 1] ^= 1;
         assertThrows(AEADBadTagException.class, () -> BackupArchive.decryptSnapshot(archive, PASSWORD));
     }
+    @Test public void versionFourAuthenticatesDescriptionsAndRetainsHistoricalWeather() throws Exception {
+        JournalHeap heap=new JournalHeap(java.util.UUID.randomUUID().toString(),"Work","Career",null,"Private purpose\n"+"🌱".repeat(20));
+        WeatherSnapshot weather=new WeatherSnapshot("2026-10-23",22,12,"Sunny",WeatherClient.ATTRIBUTION,1234,0);
+        BackupArchive.Snapshot snapshot=new BackupArchive.Snapshot(List.of(heap),List.of(new BackupArchive.Entry(1234,4,"Words","","",heap.id(),2,weather)));
+        byte[] archive=BackupArchive.encrypt(snapshot,PASSWORD); assertEquals("DPAUSE04",new String(archive,0,8,StandardCharsets.US_ASCII));
+        assertEquals(snapshot,BackupArchive.decryptSnapshot(archive,PASSWORD));
+        archive[7]='3'; assertThrows(AEADBadTagException.class,()->BackupArchive.decryptSnapshot(archive,PASSWORD));
+    }
 }

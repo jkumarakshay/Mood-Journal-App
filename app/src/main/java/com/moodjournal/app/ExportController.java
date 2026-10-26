@@ -58,14 +58,14 @@ final class ExportController {
         zipPicker = activity.registerForActivityResult(new ActivityResultContracts.CreateDocument("application/zip"), this::saveSelected);
     }
 
-    ImageButton entryMenu(JournalStore.Entry entry, JournalHeap heap) {
-        return options(R.string.journal_more, JournalExport.hasWriting(entry), () ->
+    ImageButton entryMenu(JournalStore.Entry entry, JournalHeap heap, Runnable edit) {
+        return options(R.string.journal_more, JournalExport.hasWriting(entry), edit, () ->
                 choose(new Request(entry.id(), null, false), JournalExport.entryFilename(entry)));
     }
 
-    ImageButton heapMenu(JournalHeap heap, List<JournalStore.Entry> entries) {
+    ImageButton heapMenu(JournalHeap heap, List<JournalStore.Entry> entries, Runnable edit) {
         boolean available = entries.stream().anyMatch(e -> heap.id().equals(e.heapId()) && JournalExport.hasWriting(e));
-        return options(R.string.heap_more, available, () -> showDialog.accept(AppDialogs.builder(activity)
+        return options(R.string.heap_more, available, edit, () -> showDialog.accept(AppDialogs.builder(activity)
                 .setTitle(R.string.export_heap_title)
                 .setItems(new String[]{activity.getString(R.string.export_zip), activity.getString(R.string.export_collated)}, (dialog, which) -> {
                     if (!authorized.getAsBoolean()) return;
@@ -73,22 +73,25 @@ final class ExportController {
                 }).setNegativeButton(android.R.string.cancel, null).create()));
     }
 
-    private ImageButton options(int description, boolean available, Runnable action) {
+    private ImageButton options(int description, boolean available, Runnable edit, Runnable action) {
         ImageButton more = new ImageButton(activity); more.setId(R.id.export_more);
         more.setContentDescription(activity.getString(description)); more.setImageResource(R.drawable.ic_more_vert);
         more.setImageTintList(ColorStateList.valueOf(Appearance.color(activity, 0xFF705180)));
         more.setBackgroundResource(android.R.drawable.list_selector_background);
         more.setOnClickListener(v -> {
-            if (!authorized.getAsBoolean()) return;
+            if (closed || !authorized.getAsBoolean()) return;
             onPause();
-            menu = new PopupMenu(activity, more, Gravity.END);
-            menu.getMenu().add(0, R.id.export_action, 0, R.string.export_action).setEnabled(available && !busy && pending == null);
-            menu.setOnMenuItemClickListener(item -> {
-                if (!authorized.getAsBoolean() || !available || busy || pending != null) return false;
-                action.run(); return true;
+            PopupMenu popup = new PopupMenu(activity, more, Gravity.END); menu = popup;
+            popup.getMenu().add(0, R.id.edit_action, 0, R.string.edit_action);
+            popup.getMenu().add(0, R.id.export_action, 1, R.string.export_action).setEnabled(available && !busy && pending == null);
+            popup.setOnMenuItemClickListener(item -> {
+                if (closed || menu != popup || !authorized.getAsBoolean()) return false;
+                if (item.getItemId() == R.id.edit_action) { popup.dismiss(); edit.run(); return true; }
+                if (item.getItemId() != R.id.export_action || !available || busy || pending != null) return false;
+                popup.dismiss(); action.run(); return true;
             });
-            menu.setOnDismissListener(popup -> { if (menu == popup) menu = null; });
-            menu.show();
+            popup.setOnDismissListener(dismissed -> { if (menu == dismissed) menu = null; });
+            popup.show();
         });
         return more;
     }
@@ -124,18 +127,24 @@ final class ExportController {
             try (JournalStore store = new JournalStore(context)) {
                 List<JournalStore.Entry> entries = new ArrayList<>();
                 JournalHeap heap = null;
-                if (request.heapId() != null) {
-                    for (JournalHeap h : store.heaps()) if (request.heapId().equals(h.id())) heap = h;
-                    if (heap == null) throw new IOException("Heap no longer exists");
-                    for (JournalStore.Entry e : store.all()) if (request.heapId().equals(e.heapId()) && JournalExport.hasWriting(e)) entries.add(e);
-                    entries.sort(Comparator.comparingLong(JournalStore.Entry::createdAt).thenComparingLong(JournalStore.Entry::id));
-                } else {
-                    for (JournalStore.Entry e : store.all()) if (request.entryId() == e.id() && JournalExport.hasWriting(e)) {
-                        entries.add(e);
-                        for (JournalHeap h : store.heaps()) if (h.id().equals(e.heapId())) heap = h;
+                // Freeze journal text and Heap metadata together before rendering an export.
+                android.database.sqlite.SQLiteDatabase db = store.getReadableDatabase();
+                db.beginTransaction();
+                try {
+                    if (request.heapId() != null) {
+                        for (JournalHeap h : store.heaps()) if (request.heapId().equals(h.id())) heap = h;
+                        if (heap == null) throw new IOException("Heap no longer exists");
+                        for (JournalStore.Entry e : store.all()) if (request.heapId().equals(e.heapId()) && JournalExport.hasWriting(e)) entries.add(e);
+                        entries.sort(Comparator.comparingLong(JournalStore.Entry::createdAt).thenComparingLong(JournalStore.Entry::id));
+                    } else {
+                        for (JournalStore.Entry e : store.all()) if (request.entryId() == e.id() && JournalExport.hasWriting(e)) {
+                            entries.add(e);
+                            for (JournalHeap h : store.heaps()) if (h.id().equals(e.heapId())) heap = h;
+                        }
                     }
-                }
-                if (entries.isEmpty()) throw new IOException("Nothing to export");
+                    if (entries.isEmpty()) throw new IOException("Nothing to export");
+                    db.setTransactionSuccessful();
+                } finally { db.endTransaction(); }
                 try (OutputStream output = context.getContentResolver().openOutputStream(uri, "wt")) {
                     if (output == null) throw new IOException("No output stream");
                     if (request.zip()) JournalExport.writeZip(output, entries, heap, fahrenheit);
