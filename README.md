@@ -52,14 +52,14 @@ The package ID and signing key must remain the same to preserve journals, Heaps,
 
 ### Publishing an update
 
-Install a version containing the updater once to enable it; older APKs do not yet contain it. This version uses app version **1.5.2 / versionCode 9**. For each subsequent release, increase `versionCode` in `app/build.gradle` and set a stable `major.minor.patch` `versionName` (for example `1.5.3 / 10` or `1.6.0 / 11`). APK commit-count filenames remain independent of these installed version values.
+Install a version containing the updater once to enable it; older APKs do not yet contain it. **`version.properties` is the single source of release numbering.** Set `releaseCode=10` for version code **10**, app version **1.10.0**, APK **Daily-Pause-v1.10.0.apk**, GitHub tag **v1.10.0**, and release title **Daily Pause 1.10.0**. For the next published APK, change only the counter to **11**; these values become **11 / 1.11.0 / Daily-Pause-v1.11.0.apk / v1.11.0**. Ordinary commits do not advance the release number. Existing version-code-9 installations can update normally with the same signing key. Keep the counter between 1 and 99999 to stay compatible with existing updaters.
 
 1. Build and test the APK with the **same existing signing key**. Keep that key outside the public repository. A fresh CI-generated debug key will not update existing installations.
-2. Run `python3 scripts/create-update-manifest.py path/to/Daily-Pause.apk` with `ANDROID_HOME` set, or pass `--build-tools /path/to/sdk/build-tools/35.0.0`. The helper verifies the APK signature and reads its actual package/version/SDK, then writes `daily-pause-update.json` beside it with its size and SHA-256.
-3. Create a stable GitHub Release, such as `v1.5.1`, mark it as the latest release, and upload **both the unchanged APK and daily-pause-update.json to that same release**. Add the release notes to the release description. Do not mark it as a prerelease. The manifest names the exact APK asset; it does not change the filename convention.
+2. Run `python3 scripts/create-update-manifest.py path/to/Daily-Pause-v1.10.0.apk` with `ANDROID_HOME` set, or pass `--build-tools /path/to/sdk/build-tools/35.0.0`. The helper verifies the signature and actual package/version/SDK, rejects a mismatched release number or filename, then writes `daily-pause-update.json` beside the APK with its size and SHA-256. It also prints the matching GitHub tag and title.
+3. Commit and push the tested release source to `main`. Run `python3 scripts/publish-release.py path/to/Daily-Pause-v1.10.0.apk --notes-file path/to/release-notes.md --dry-run` to check the release plan. Without `--dry-run`, the helper uses an authenticated GitHub CLI to create a draft, upload **both the unchanged APK and daily-pause-update.json**, then publish it as the latest stable release. It derives the tag/title from the APK manifest and checks the counter against `version.properties`; no separately typed tag is needed. Alternatively, create the matching release manually in GitHub and attach both files, without marking it as a prerelease.
 4. Users can use Check for updates immediately or receive the next automatic offer. An incompatible Android minimum is explained without offering installation; an equal or lower version code is never offered.
 
-The repository had no published releases when this feature was implemented. No release or tag is published by the app or the manifest helper. The updater requires the manifest and APK for a supported release; it reports a retryable check failure if a latest release is incomplete. There are no background periodic jobs or extra notification permissions for checks. Daily check-in notification settings are independent.
+No release or tag is published by the app or the manifest helper; publishing is an explicit developer action. The updater requires the manifest and APK for a supported release; it reports a retryable check failure if a latest release is incomplete. There are no background periodic jobs or extra notification permissions for checks. Daily check-in notification settings are independent.
 
 ## Weather and reflection
 
@@ -162,27 +162,12 @@ Open this folder in Android Studio, or use a JDK 17 or 21 and the Android SDK wi
 ./gradlew assembleDebug
 ```
 
-On **main**, the installable APK is `app/build/outputs/apk/debug/Daily-Pause-v1.<main-commit-count>.apk`, using the total commits reachable from `HEAD`.
-
-On **beautify-app-v1**, the filename is **`Daily-Pause-v1.<main-commit-count>.<branch-only-commit-count>.apk`**. The first count comes from `git rev-list --count origin/main`; the second from `git rev-list --count origin/main..HEAD`, so shared history and main commits merged into the branch are not counted twice. For example, main with 12 commits and one new beautify commit produces `Daily-Pause-v1.12.1.apk`. Other branches retain the original total-HEAD-count scheme. Fetch main before building to keep `origin/main` current; builds do not fetch automatically. `-PapkMainRef=main` can select a local main ref instead.
-
-Detached checkouts can select the branch scheme with `-PapkBranch=beautify-app-v1`. Source archives without Git metadata can use `-PapkBranch=beautify-app-v1 -PapkMainCommitCount=12 -PapkBranchCommitCount=1`. The original `-PapkCommitCount=12` override still produces `Daily-Pause-v1.12.apk` without Git. These flags change only the output filename.
+The installable APK is **`app/build/outputs/apk/debug/Daily-Pause-v1.10.0.apk`** for `releaseCode=10`. Every branch and detached/source-archive build uses the same version-based rule. APK naming does not run Git, depend on `origin/main`, or count commits. The old `apkCommitCount`, `apkBranch`, and branch-count overrides are no longer used. Increment `releaseCode` in `version.properties` once for each newly published APK; Android requires it to increase to offer an update.
 
 Transfer the APK to an Android phone, open it, and allow installation from the app opening the file when prompted. With a connected development device, use:
 
 ```sh
-apk_commit_count=$(git rev-list --count HEAD)
-adb install -r "app/build/outputs/apk/debug/Daily-Pause-v1.${apk_commit_count}.apk"
-```
-
-For a beautify branch build:
-
-```sh
-git fetch origin main
-./gradlew assembleDebug
-apk_main_count=$(git rev-list --count origin/main)
-apk_branch_count=$(git rev-list --count origin/main..HEAD)
-adb install -r "app/build/outputs/apk/debug/Daily-Pause-v1.${apk_main_count}.${apk_branch_count}.apk"
+adb install -r app/build/outputs/apk/debug/Daily-Pause-v1.10.0.apk
 ```
 
 This is a debug-signed APK for personal testing. Store distribution requires a release build and a securely managed release signing key. Keep the same signing key for future updates; Android cannot update an installation with an APK signed by a different key.

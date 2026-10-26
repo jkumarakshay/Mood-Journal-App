@@ -55,6 +55,18 @@ public class UpdateClientTest {
             new UpdateClient((url, limit) -> { throw new UpdateClient.HttpFailure(status); }).latest(); fail();
         } catch (UpdateClient.HttpFailure e) { assertEquals(status, e.status); }
     }
+    @Test public void counterBasedNamesWorkWithTheExistingUpdateProtocol() throws Exception {
+        for (int code : new int[]{10, 17}) {
+            String version = "1." + code + ".0", name = "Daily-Pause-v" + version + ".apk";
+            String prefix = "https://github.com/jkumarakshay/Mood-Journal-App/releases/download/v" + version + "/";
+            JSONObject source = release(), metadata = manifest().put("versionCode", code).put("versionName", version).put("apkAssetName", name);
+            source.put("html_url", "https://github.com/jkumarakshay/Mood-Journal-App/releases/tag/v" + version);
+            source.getJSONArray("assets").getJSONObject(0).put("browser_download_url", prefix + UpdateRelease.MANIFEST_NAME);
+            source.getJSONArray("assets").getJSONObject(1).put("name", name).put("browser_download_url", prefix + name);
+            UpdateRelease result = client(source, metadata).latest();
+            assertEquals(code, result.versionCode()); assertEquals(version, result.versionName()); assertEquals(name, result.assetName());
+        }
+    }
     @Test public void draftAndPrereleaseNeverBecomeUserUpdates() throws Exception {
         assertNull(client(release().put("draft", true), manifest()).latest());
         assertNull(client(release().put("prerelease", true), manifest()).latest());

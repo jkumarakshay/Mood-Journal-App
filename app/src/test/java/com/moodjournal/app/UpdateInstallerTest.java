@@ -58,6 +58,16 @@ public class UpdateInstallerTest {
     @Test public void rejectsChangedOrTruncatedDownloadsBeforeReadingPackage() throws Exception {
         Files.write(file.toPath(), new byte[]{3, 2, 1}); rejected(); Files.write(file.toPath(), new byte[]{1}); rejected();
     }
+    @Test public void counterReleaseCanUpdateThePreviouslyDistributedCodeNine() throws Exception {
+        PackageInfo current = Shadows.shadowOf(context.getPackageManager()).getInternalMutablePackageInfo(context.getPackageName());
+        current.setLongVersionCode(9); current.versionName = "1.5.2";
+        incoming.setLongVersionCode(10); incoming.versionName = "1.10.0";
+        release = new UpdateRelease(10, "1.10.0", release.minSdk(), "Daily-Pause-v1.10.0.apk",
+                "https://github.com/jkumarakshay/Mood-Journal-App/releases/download/v1.10.0/Daily-Pause-v1.10.0.apk",
+                release.size(), release.sha256(), release.notes(),
+                "https://github.com/jkumarakshay/Mood-Journal-App/releases/tag/v1.10.0");
+        installer.verify(file, release); assertEquals(9, installer.installedCode());
+    }
     @Test public void rejectsWrongSigningCertificateAndUnsignedPackages() throws Exception {
         sign(incoming, "dcba"); rejected(); incoming.signingInfo = null; incoming.signatures = null; rejected();
     }

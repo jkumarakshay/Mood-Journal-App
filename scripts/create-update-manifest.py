@@ -34,7 +34,14 @@ def main():
     if not package or not minimum or package[1] != 'com.moodjournal.app':
         parser.error('APK is not Daily Pause or its version/minimum SDK could not be read.')
     if not re.fullmatch(r'\d{1,5}\.\d{1,5}\.\d{1,5}', package[3]):
-        parser.error('Use a stable major.minor.patch versionName, for example 1.5.0.')
+        parser.error('Use a stable major.minor.patch versionName, for example 1.10.0.')
+    release_code = int(package[2])
+    expected_version = f'1.{release_code}.0'
+    if not 1 <= release_code <= 99999 or package[3] != expected_version:
+        parser.error(f'versionCode {release_code} must use versionName {expected_version}. Rebuild from version.properties.')
+    expected_name = f'Daily-Pause-v{expected_version}.apk'
+    if apk.name != expected_name:
+        parser.error(f'APK filename must be {expected_name} to match its installed version.')
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,159}\.apk', apk.name):
         parser.error('APK filename must use letters, digits, dots, underscores, or hyphens.')
     size = apk.stat().st_size
@@ -50,6 +57,7 @@ def main():
     output = args.output or apk.parent / 'daily-pause-update.json'
     output.write_text(json.dumps(value, indent=2) + '\n', encoding='utf-8')
     print(f'Created {output}: version {package[3]}, versionCode {package[2]}')
+    print(f'GitHub tag: v{expected_version}; release title: Daily Pause {expected_version}')
     print('Upload this manifest and the unchanged APK to the same stable GitHub Release.')
 
 
