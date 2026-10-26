@@ -57,6 +57,7 @@ public final class MainActivity extends FragmentActivity {
     private int promptIndex;
     private int currentTab = CHECK_IN;
     private boolean journalUnlocked;
+    private boolean backupUnlocked;
     private JournalGate gate;
     private AlertDialog privateDialog;
     private HistoryScreen history;
@@ -84,7 +85,12 @@ public final class MainActivity extends FragmentActivity {
         store = new JournalStore(this);
         draft = getSharedPreferences("draft", MODE_PRIVATE);
         gate = new JournalGate(this, new PinLock(this), JournalGate.systemBiometrics(this), () -> {
-            if (settingsPage != SettingsScreen.NONE || currentTab == CHECK_IN || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
+            if (!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
+            if (settingsPage == SettingsScreen.BACKUP) {
+                backupUnlocked = true;
+                hideKeyboard(); showSettings(); return;
+            }
+            if (settingsPage != SettingsScreen.NONE || currentTab == CHECK_IN) return;
             journalUnlocked = true;
             hideKeyboard();
             showPrivateTab();
@@ -94,7 +100,7 @@ public final class MainActivity extends FragmentActivity {
         analysis = new AnalysisScreen(this, () -> settingsPage == SettingsScreen.NONE && currentTab == HISTORY && analyticsMode == 1 && journalUnlocked, this::showHistory);
         analyticsMode = state == null ? 0 : Math.max(0, Math.min(1, state.getInt("analytics_mode", 0)));
         backup = new BackupController(this, state, this::showPrivateDialog,
-                () -> settingsPage == SettingsScreen.NONE && currentTab == JOURNAL && journalUnlocked, this::showJournal);
+                () -> settingsPage == SettingsScreen.BACKUP && backupUnlocked, this::showSettings);
         exports = new ExportController(this, state,
                 () -> settingsPage == SettingsScreen.NONE && currentTab == JOURNAL && journalUnlocked,
                 this::showPrivateDialog, this::showJournal);
@@ -118,7 +124,7 @@ public final class MainActivity extends FragmentActivity {
         };
         getOnBackPressedDispatcher().addCallback(this, settingsBack);
         settingsPage = state == null ? SettingsScreen.NONE : state.getInt("settings_page", SettingsScreen.NONE);
-        if (settingsPage < SettingsScreen.NONE || settingsPage > SettingsScreen.UPDATES) settingsPage = SettingsScreen.NONE;
+        if (settingsPage < SettingsScreen.NONE || settingsPage > SettingsScreen.BACKUP) settingsPage = SettingsScreen.NONE;
         mood = draft.getInt("mood", 0);
         pendingMoment = state != null && state.getBoolean("pending_moment") && mood != 0;
         createHeapForMoment = pendingMoment && state.getBoolean("create_heap_for_moment");
@@ -220,6 +226,7 @@ public final class MainActivity extends FragmentActivity {
         }
         hideKeyboard();
         journalUnlocked = false;
+        backupUnlocked = false;
         gate.lock();
         backup.onPause(); exports.onPause(); weather.onPause(); updates.onLeave();
         if (tab == CHECK_IN) showCheckIn();
@@ -243,6 +250,7 @@ public final class MainActivity extends FragmentActivity {
             privateDialog = null;
         }
         journalUnlocked = false;
+        backupUnlocked = false;
         gate.lock();
         backup.onPause(); exports.onPause(); weather.onPause(); updates.onLeave();
         settingsPage = target;
@@ -252,17 +260,24 @@ public final class MainActivity extends FragmentActivity {
     private void showSettings() {
         frame(currentTab);
         settings.show(page, settingsPage);
+        if (settingsPage == SettingsScreen.BACKUP) {
+            if (!backupUnlocked) { gate.show(page); return; }
+            try {
+                long count = android.database.DatabaseUtils.queryNumEntries(store.getReadableDatabase(), "entries")
+                        + android.database.DatabaseUtils.queryNumEntries(store.getReadableDatabase(), "heaps");
+                backup.addTo(page, count > 0 ? 1 : 0);
+            } catch (android.database.SQLException e) {
+                add(page, text(getString(R.string.backup_data_unavailable), 16, INK, false), 24);
+            }
+        }
     }
 
     private void backFromSettings() {
-        updates.onLeave();
         if (settingsPage != SettingsScreen.HOME) {
-            settingsPage = SettingsScreen.HOME;
-            showSettings();
+            openSettings(SettingsScreen.HOME);
             return;
         }
-        settingsPage = SettingsScreen.NONE;
-        if (currentTab == CHECK_IN) showCheckIn(); else showPrivateTab();
+        openTab(currentTab);
     }
 
     private void showHistory() {
@@ -306,6 +321,7 @@ public final class MainActivity extends FragmentActivity {
 
     private void showCheckIn() {
         journalUnlocked = false;
+        backupUnlocked = false;
         gate.lock();
         frame(CHECK_IN);
         add(page, text("DAILY PAUSE  /  A MOMENT FOR YOU", 11, PURPLE, true), 0);
@@ -552,11 +568,10 @@ public final class MainActivity extends FragmentActivity {
         try {
             journals.show(page, entries);
             exports.addStatus(page);
-            backup.addTo(page, entries.size() + store.heaps().size());
         } catch (android.database.SQLException e) {
             add(page, text("Your journal couldn’t be opened. Try reopening the app. Your entries have not been removed.", 16, INK, false), 24);
         }
-        add(page, text("Uninstalling the app or clearing its data removes local entries. Keep an encrypted backup and its passphrase to restore them later.", 12, MUTED, false), 24);
+        add(page, text(getString(R.string.journal_backup_hint), 12, MUTED, false), 24);
         if (pendingMoment) showMomentDestinations();
     }
 
@@ -632,18 +647,23 @@ public final class MainActivity extends FragmentActivity {
         weather.onPause();
         updates.onLeave();
         journalUnlocked = false;
+        backupUnlocked = false;
         gate.lock();
         if (privateDialog != null) {
             privateDialog.dismiss();
             privateDialog = null;
         }
-        if (!onboarding.active() && settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN) showPrivateTab();
+        if (!onboarding.active()) {
+            if (settingsPage == SettingsScreen.BACKUP) showSettings();
+            else if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN) showPrivateTab();
+        }
         super.onPause();
     }
     @Override protected void onResume() {
         super.onResume();
         if (onboarding.active()) return;
-        if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN && !journalUnlocked) showPrivateTab();
+        if (settingsPage == SettingsScreen.BACKUP && !backupUnlocked) showSettings();
+        else if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN && !journalUnlocked) showPrivateTab();
         reminders.onResume();
         weather.onResume();
         updates.onResume();
@@ -659,7 +679,7 @@ public final class MainActivity extends FragmentActivity {
             privateDialog.dismiss();
             privateDialog = null;
         }
-        journalUnlocked = false; gate.lock(); backup.onPause(); exports.onPause(); weather.onPause(); updates.onLeave(); settingsPage = SettingsScreen.NONE;
+        journalUnlocked = false; backupUnlocked = false; gate.lock(); backup.onPause(); exports.onPause(); weather.onPause(); updates.onLeave(); settingsPage = SettingsScreen.NONE;
         intent.setAction(null);
         if (onboarding.active()) showOnboarding(); else showCheckIn();
     }
@@ -681,6 +701,7 @@ public final class MainActivity extends FragmentActivity {
     private void showOnboarding() {
         settingsPage = SettingsScreen.NONE;
         journalUnlocked = false;
+        backupUnlocked = false;
         gate.lock();
         hideKeyboard();
         final int step = onboarding.step();

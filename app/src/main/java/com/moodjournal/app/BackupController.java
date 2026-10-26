@@ -4,7 +4,13 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -77,7 +83,7 @@ final class BackupController {
             if (uri == null) { finish("Restore selection cancelled."); return; }
             if (!"content".equals(uri.getScheme())) { finish("Choose a backup using the system file picker."); return; }
             restoreUri = uri;
-            finish("Backup selected. Unlock My Journal, then tap Restore encrypted backup to continue.");
+            finish(activity.getString(R.string.backup_file_selected));
         });
     }
 
@@ -87,24 +93,25 @@ final class BackupController {
         heading.setPadding(0, dp(24), 0, dp(8));
         page.addView(heading);
         page.addView(label("Choose Google Drive in the system save dialog. Install Drive and sign in there if needed. Saved entries and Heaps are backed up; drafts and your lock PIN stay on this device.", 14));
+        if (entryCount == 0) page.addView(label(activity.getString(R.string.backup_empty_note), 14));
         Button export = button("Back up to Google Drive", R.id.backup_export);
         export.setEnabled(entryCount > 0 && stage == Stage.IDLE && pendingExportName == null);
         export.setOnClickListener(v -> {
             if (authorized.getAsBoolean() && stage == Stage.IDLE && pendingExportName == null) askPassphrase(false);
         });
-        page.addView(export);
+        addAction(page, export);
         Button restore = button("Restore encrypted backup", R.id.backup_restore);
         restore.setEnabled(stage == Stage.IDLE && pendingExportName == null);
         restore.setOnClickListener(v -> {
             if (!authorized.getAsBoolean() || stage != Stage.IDLE || pendingExportName != null) return;
             if (restoreUri == null) chooseRestore(); else askPassphrase(true);
         });
-        page.addView(restore);
+        addAction(page, restore);
         if (restoreUri != null) {
             Button another = button("Choose a different backup", R.id.backup_choose_file);
             another.setEnabled(stage == Stage.IDLE);
             another.setOnClickListener(v -> { if (authorized.getAsBoolean() && stage == Stage.IDLE) chooseRestore(); });
-            page.addView(another);
+            addAction(page, another);
         }
         String message = switch (stage) {
             case ENCRYPTING -> "Encrypting your saved entries…";
@@ -147,7 +154,7 @@ final class BackupController {
         dialog.setOnDismissListener(d -> { password.setText(""); if (confirm != null) confirm.setText(""); });
         showDialog.accept(dialog);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            if (generation != token || !authorized.getAsBoolean()) { dialog.dismiss(); return; }
+            if (!dialog.isShowing() || generation != token || !authorized.getAsBoolean()) { dialog.dismiss(); return; }
             char[] attempt = new char[password.length()];
             password.getText().getChars(0, password.length(), attempt, 0);
             if (!BackupArchive.validPassphrase(attempt)) {
@@ -196,7 +203,7 @@ final class BackupController {
         if (uri == null) { if (source != null) source.delete(); finish("Backup cancelled."); return; }
         if (!"content".equals(uri.getScheme()) || source == null || !source.isFile()) {
             if (source != null) source.delete();
-            finish("Backup preparation expired or the app restarted. Unlock My Journal and try again.");
+            finish(activity.getString(R.string.backup_preparation_expired));
             return;
         }
         stage = Stage.SAVING;
@@ -240,29 +247,31 @@ final class BackupController {
     }
 
     private void confirmRestore(int token) {
-        AlertDialog dialog = AppDialogs.builder(activity).setTitle("Restore " + pendingRestore.entries().size() + " entries?")
+        BackupArchive.Snapshot snapshot = pendingRestore;
+        AlertDialog dialog = AppDialogs.builder(activity).setTitle("Restore " + snapshot.entries().size() + " entries?")
                 .setMessage("Missing entries and Heaps will be added. Existing entries, Heaps, drafts, and your PIN stay unchanged. Exact duplicates will be skipped.")
-                .setNegativeButton("Cancel", null).setPositiveButton("Restore entries", (d, w) -> {
-                    if (generation != token || !authorized.getAsBoolean() || pendingRestore == null) return;
-                    BackupArchive.Snapshot approved = pendingRestore;
-                    pendingRestore = null;
-                    stage = Stage.RESTORING;
-                    refresh.run();
-                    worker.execute(() -> {
-                        String result;
-                        try (JournalStore store = new JournalStore(context)) {
-                            int added = store.restoreSnapshot(approved);
-                            result = "Restore complete: " + added + " entries added. Existing duplicates were skipped.";
-                        } catch (Exception e) { result = "Restore failed. No entries were added. Check device storage and try again."; }
-                        String message = result;
-                        main.post(() -> { restoreUri = null; finish(message); });
-                    });
-                }).create();
+                .setNegativeButton("Cancel", null).setPositiveButton("Restore entries", null).create();
         dialog.setOnDismissListener(d -> {
             pendingRestore = null;
             if (stage == Stage.IDLE) refreshIfAuthorized();
         });
         showDialog.accept(dialog);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            if (!dialog.isShowing() || generation != token || !authorized.getAsBoolean() || pendingRestore != snapshot) return;
+            pendingRestore = null;
+            stage = Stage.RESTORING;
+            dialog.dismiss();
+            refresh.run();
+            worker.execute(() -> {
+                String result;
+                try (JournalStore store = new JournalStore(context)) {
+                    int added = store.restoreSnapshot(snapshot);
+                    result = "Restore complete: " + added + " entries added. Existing duplicates were skipped.";
+                } catch (Exception e) { result = "Restore failed. No entries were added. Check device storage and try again."; }
+                String message = result;
+                main.post(() -> { restoreUri = null; finish(message); });
+            });
+        });
     }
 
     void onPause() {
@@ -322,9 +331,30 @@ final class BackupController {
     }
 
     private Button button(String value, int id) {
-        Button view = new Button(activity);
-        view.setId(id); view.setText(value); view.setAllCaps(false); view.setMinHeight(dp(52));
+        Button view = new Button(activity); view.setId(id); view.setText(value); view.setAllCaps(false); view.setTextSize(16);
+        view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL)); view.setMinHeight(dp(60)); view.setMinimumHeight(dp(60));
+        view.setMinWidth(0); view.setMinimumWidth(0); view.setPadding(dp(18), dp(14), dp(18), dp(14));
+        view.setBackgroundTintList(null); view.setStateListAnimator(null);
+        boolean primary = id == R.id.backup_export;
+        int accent = Appearance.color(activity, 0xFF705180), soft = Appearance.color(activity, 0xFFEDE6F1);
+        view.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled}, new int[]{}},
+                new int[]{Appearance.color(activity, 0xFF6D6470), primary ? Appearance.onAccent(activity) : accent}));
+        StateListDrawable surface = new StateListDrawable();
+        surface.addState(new int[]{-android.R.attr.state_enabled}, shape(soft)); surface.addState(new int[]{}, shape(primary ? accent : soft));
+        int ripple = primary ? (Appearance.isDark(activity) ? 0x242C1737 : 0x33FFFFFF) : (accent & 0x00FFFFFF) | 0x22000000;
+        view.setBackground(new RippleDrawable(ColorStateList.valueOf(ripple), surface, shape(Color.WHITE)));
+        int icon = primary ? android.R.drawable.ic_menu_save : id == R.id.backup_restore ? android.R.drawable.ic_menu_revert : android.R.drawable.ic_menu_search;
+        Drawable symbol = activity.getDrawable(icon).mutate(); symbol.setTintList(view.getTextColors()); symbol.setBounds(0, 0, dp(24), dp(24));
+        view.setCompoundDrawablesRelative(symbol, null, null, null); view.setCompoundDrawablePadding(dp(12));
         return view;
+    }
+
+    private GradientDrawable shape(int color) {
+        GradientDrawable shape = new GradientDrawable(); shape.setColor(color); shape.setCornerRadius(dp(18)); return shape;
+    }
+
+    private void addAction(LinearLayout page, Button action) {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2); params.topMargin = dp(12); page.addView(action, params);
     }
 
     private int dp(int value) { return Math.round(value * activity.getResources().getDisplayMetrics().density); }

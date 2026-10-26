@@ -1,4 +1,12 @@
 <resources>
+    <string name="settings_backup">Backup/Restore</string>
+    <string name="settings_backup_summary">Keep an encrypted backup, or restore journals and Heaps.</string>
+    <string name="settings_backup_description">Back up or restore your saved journals and Heaps using Google Drive or another file provider. Your backup passphrase is separate from your journal PIN.</string>
+    <string name="backup_data_unavailable">Your saved data couldn’t be opened. Try reopening the app. Nothing has been removed.</string>
+    <string name="backup_empty_note">No saved journals or Heaps to back up yet. You can restore an existing backup below.</string>
+    <string name="journal_backup_hint">Manage encrypted backups in Settings → Backup/Restore. Uninstalling the app or clearing its data removes local entries. Keep your backup file and passphrase to restore them later.</string>
+    <string name="backup_file_selected">Backup selected. Unlock Settings → Backup/Restore, then tap Restore encrypted backup to continue.</string>
+    <string name="backup_preparation_expired">Backup preparation expired or the app restarted. Unlock Settings → Backup/Restore and try again.</string>
     <string name="edit_action">Edit</string>
     <string name="edit_save_changes">Save Changes</string>
     <string name="edit_entry_title">Edit journal entry</string>
@@ -240,9 +248,9 @@ for you.</string>
     <string name="auth_eyebrow">DAILY PAUSE / YOUR PRIVATE SPACE</string>
     <string name="auth_locked_title">A little privacy,
 a little peace.</string>
-    <string name="auth_setup_description">Create a six-digit PIN for your journal and analytics. You can then choose biometrics for everyday sign-ins, with your PIN as a backup.</string>
-    <string name="auth_biometric_description">Use your enrolled biometrics to open your journal and analytics. Your PIN is always here as a backup.</string>
-    <string name="auth_pin_description">Enter your six-digit PIN to open your journal and analytics.</string>
+    <string name="auth_setup_description">Create a six-digit PIN for your journal, analytics and backups. You can then choose biometrics for everyday sign-ins, with your PIN as a backup.</string>
+    <string name="auth_biometric_description">Use your enrolled biometrics to open your private space. Your PIN is always here as a backup.</string>
+    <string name="auth_pin_description">Enter your six-digit PIN to open your private space.</string>
     <string name="auth_set_pin">Set PIN and unlock</string>
     <string name="auth_unlock">Unlock</string>
     <string name="auth_use_pin">Sign in using PIN instead</string>
@@ -266,7 +274,7 @@ a little peace.</string>
         <item quantity="other">Too many attempts. Try again in %1$d seconds, or use available biometrics.</item>
     </plurals>
     <string name="auth_biometric_title">Unlock Daily Pause</string>
-    <string name="auth_biometric_subtitle">Your journal and analytics stay private</string>
+    <string name="auth_biometric_subtitle">Your saved reflections stay private</string>
     <string name="auth_biometric_unavailable">Biometrics were cancelled or are unavailable. Try again or sign in using your PIN instead.</string>
     <string name="auth_biometric_not_recognized">Biometric not recognized. Try again or choose the PIN option.</string>
     <string name="auth_biometric_preference_title">Use biometrics first?</string>

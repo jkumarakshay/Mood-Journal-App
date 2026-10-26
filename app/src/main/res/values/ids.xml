@@ -1,4 +1,5 @@
 <resources>
+    <item name="settings_backup" type="id" />
     <item name="edit_action" type="id" />
     <item name="edit_save_changes" type="id" />
     <item name="heap_description" type="id" />

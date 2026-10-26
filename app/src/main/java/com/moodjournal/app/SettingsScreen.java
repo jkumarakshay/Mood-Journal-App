@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 final class SettingsScreen {
-    static final int NONE = 0, HOME = 1, ABOUT = 2, THEME = 3, NOTIFICATION = 4, WEATHER = 5, UPDATES = 6;
+    static final int NONE = 0, HOME = 1, ABOUT = 2, THEME = 3, NOTIFICATION = 4, WEATHER = 5, UPDATES = 6, BACKUP = 7;
     private final FragmentActivity activity;
     private final IntConsumer navigate;
     private final Consumer<Boolean> changeTheme;
@@ -29,7 +29,7 @@ final class SettingsScreen {
 
     void show(LinearLayout page, int screen) {
         TextView title = label(activity.getString(screen == ABOUT ? R.string.settings_about_title
-                : screen == THEME ? R.string.settings_theme : screen == NOTIFICATION ? R.string.settings_notification : screen == WEATHER ? R.string.settings_weather : screen == UPDATES ? R.string.settings_updates : R.string.settings_title), 36);
+                : screen == THEME ? R.string.settings_theme : screen == NOTIFICATION ? R.string.settings_notification : screen == WEATHER ? R.string.settings_weather : screen == UPDATES ? R.string.settings_updates : screen == BACKUP ? R.string.settings_backup : R.string.settings_title), 36);
         title.setId(R.id.settings_title);
         title.setTypeface(Typeface.create("serif", Typeface.NORMAL));
         add(page, title, 0);
@@ -39,6 +39,8 @@ final class SettingsScreen {
             add(page, label(activity.getString(R.string.settings_about_privacy), 15), 18);
         } else if (screen == UPDATES) {
             updates.show(page);
+        } else if (screen == BACKUP) {
+            add(page, label(activity.getString(R.string.settings_backup_description), 16), 16);
         } else if (screen == WEATHER) {
             weather.show(page);
         } else if (screen == NOTIFICATION) {
@@ -69,6 +71,8 @@ final class SettingsScreen {
             add(page, label(activity.getString(R.string.settings_description), 16), 12);
             add(page, link(R.string.settings_about, R.id.settings_about, ABOUT), 24);
             add(page, label(activity.getString(R.string.settings_about_summary), 14), 8);
+            add(page, link(R.string.settings_backup, R.id.settings_backup, BACKUP), 24);
+            add(page, label(activity.getString(R.string.settings_backup_summary), 14), 8);
             add(page, link(R.string.settings_theme, R.id.settings_theme, THEME), 24);
             add(page, label(activity.getString(Appearance.isDark(activity) ? R.string.theme_dark : R.string.theme_light), 14), 8);
             add(page, link(R.string.settings_notification, R.id.settings_notification, NOTIFICATION), 24);

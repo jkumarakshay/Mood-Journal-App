@@ -138,13 +138,15 @@ public class SettingsThemeTest {
             assertEquals(expected, ((GradientDrawable) card.getBackground()).getColor().getDefaultColor());
             assertEquals(expected, ((GradientDrawable) folder.getBackground()).getColor().getDefaultColor());
             assertEquals(Integer.valueOf(JournalHeap.COLORS[2]), store.heaps().get(0).color());
-            assertEquals(Appearance.color(a, 0xFF312B35), ((TextView) a.findViewById(R.id.backup_status)).getCurrentTextColor());
+            assertNull(a.findViewById(R.id.backup_status));
             findButton(a.getWindow().getDecorView(), "Read this entry  →").performClick();
             AlertDialog entry = ShadowAlertDialog.getLatestAlertDialog();
             TextView body = findText(entry.getWindow().getDecorView(), "Dark journal words");
             assertEquals(Appearance.color(a, 0xFF312B35), body.getCurrentTextColor());
             assertTrue((entry.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);
             entry.getButton(AlertDialog.BUTTON_POSITIVE).performClick(); idle();
+            a.findViewById(R.id.settings_button).performClick(); a.findViewById(R.id.settings_backup).performClick(); JournalTest.unlockJournal(a);
+            assertEquals(Appearance.color(a, 0xFF312B35), ((TextView) a.findViewById(R.id.backup_status)).getCurrentTextColor());
             a.findViewById(R.id.backup_export).performClick();
             EditText password = ShadowAlertDialog.getLatestAlertDialog().findViewById(R.id.backup_password);
             assertTrue(contrast(password.getCurrentTextColor(), 0xFF29252F) >= 4.5); assertFalse(password.isSaveEnabled());

@@ -59,12 +59,16 @@ public class BackupControllerTest {
         try (JournalStore store = new JournalStore(context)) { store.add(4, "Only encrypted text may leave the app", "A private feeling", "Rest"); }
     }
 
-    @Test public void backupActionsRequireJournalUnlock() {
+    @Test public void backupActionsLiveInSettingsAndRequireTheirOwnUnlock() {
         try (ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity a = c.get();
             assertNull(a.findViewById(R.id.backup_export));
             a.findViewById(R.id.journal_tab).performClick();
             assertNull(a.findViewById(R.id.backup_restore));
+            JournalTest.unlockJournal(a);
+            assertNull(a.findViewById(R.id.backup_export)); assertNull(a.findViewById(R.id.backup_restore));
+            a.findViewById(R.id.settings_button).performClick(); a.findViewById(R.id.settings_backup).performClick();
+            assertNull(a.findViewById(R.id.backup_export)); assertNotNull(a.findViewById(R.id.unlock_submit));
             JournalTest.unlockJournal(a);
             assertTrue(a.findViewById(R.id.backup_export).isEnabled());
             assertNotNull(a.findViewById(R.id.backup_restore));
@@ -97,7 +101,7 @@ public class BackupControllerTest {
         List<BackupArchive.Entry> expected;
         List<JournalHeap> expectedHeaps;
         try (JournalStore store = new JournalStore(context)) {
-            JournalHeap heap = store.addHeap("Private work concerns", "Career", JournalHeap.COLORS[2]);
+            JournalHeap heap = store.addHeap("Private work concerns", "Career", JournalHeap.COLORS[2], "Private Heap description");
             store.addHeap("An empty Heap", "", null);
             store.add(3, "A journal inside a Heap", "", "", heap.id());
             expected = store.backupEntries(); expectedHeaps = store.heaps();
@@ -204,9 +208,25 @@ public class BackupControllerTest {
         }
     }
 
+    @Test public void cancelledRestoreButtonCannotApproveALaterConfirmation() throws Exception {
+        Files.write(providerFile.toPath(), BackupArchive.encrypt(List.of(new BackupArchive.Entry(1234,2,"Incoming","","")),PASSPHRASE.toCharArray()));
+        try(ActivityController<MainActivity> c=unlocked()) {
+            MainActivity a=c.get();a.findViewById(R.id.backup_restore).performClick();returnFromPicker(c,awaitPicker(a),FILE_URI);JournalTest.unlockJournal(a);
+            a.findViewById(R.id.backup_restore).performClick();enterPassphrase(ShadowAlertDialog.getLatestAlertDialog(),false,PASSPHRASE);
+            JournalTest.await(()->Shadows.shadowOf(ShadowAlertDialog.getLatestAlertDialog()).getTitle().toString().startsWith("Restore 1 entries"));
+            AlertDialog old=ShadowAlertDialog.getLatestAlertDialog();android.widget.Button stale=old.getButton(AlertDialog.BUTTON_POSITIVE);
+            old.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();Shadows.shadowOf(Looper.getMainLooper()).idle();
+            a.findViewById(R.id.backup_restore).performClick();enterPassphrase(ShadowAlertDialog.getLatestAlertDialog(),false,PASSPHRASE);
+            JournalTest.await(()->Shadows.shadowOf(ShadowAlertDialog.getLatestAlertDialog()).getTitle().toString().startsWith("Restore 1 entries"));
+            AlertDialog current=ShadowAlertDialog.getLatestAlertDialog();assertNotSame(old,current);stale.performClick();Shadows.shadowOf(Looper.getMainLooper()).idle();
+            try(JournalStore store=new JournalStore(context)){assertEquals(1,store.all().size());}
+            assertTrue(current.isShowing());current.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
+        }
+    }
+
     private ActivityController<MainActivity> unlocked() {
         ActivityController<MainActivity> c = Robolectric.buildActivity(MainActivity.class).setup();
-        c.get().findViewById(R.id.journal_tab).performClick(); JournalTest.unlockJournal(c.get());
+        c.get().findViewById(R.id.settings_button).performClick(); c.get().findViewById(R.id.settings_backup).performClick(); JournalTest.unlockJournal(c.get());
         return c;
     }
     private void startExport(MainActivity a) {
