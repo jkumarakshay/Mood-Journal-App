@@ -91,4 +91,55 @@ public class UpdateInstallerTest {
         try { installer.installIntent(new File(context.getFilesDir(), "journal.db")); fail("Private files exposed"); } catch (IllegalArgumentException expected) { }
     }
     @Test @Config(sdk = 26) public void minimumAndroidVersionUsesLegacySignatureVerification() throws Exception { installer.verify(file, release); }
+
+    private void history(PackageInfo info, String... certificates) {
+        Signature[] chain = java.util.Arrays.stream(certificates).map(Signature::new).toArray(Signature[]::new);
+        Shadows.shadowOf(info.signingInfo).setPastSigningCertificates(chain);
+    }
+    private PackageInfo installed() {
+        return Shadows.shadowOf(context.getPackageManager()).getInternalMutablePackageInfo(context.getPackageName());
+    }
+    @Test public void acceptsForwardRotationWithPlatformVerifiedHistoryOnAndroidThirteenAndLater() throws Exception {
+        sign(incoming, "dcba"); history(incoming, "abcd", "dcba"); installer.verify(file, release);
+        sign(installed(), "dcba"); history(installed(), "abcd", "dcba");
+        sign(incoming, "eeee"); history(incoming, "abcd", "dcba", "eeee"); installer.verify(file, release);
+    }
+    @Test public void rotationStartsAtTheSameApiAsTheReleaseSigningPolicy() throws Exception {
+        org.robolectric.util.ReflectionHelpers.setStaticField(Build.VERSION.class, "SDK_INT", 33);
+        try { sign(incoming, "dcba"); history(incoming, "abcd", "dcba"); installer.verify(file, release); }
+        finally { org.robolectric.util.ReflectionHelpers.setStaticField(Build.VERSION.class, "SDK_INT", 35); }
+    }
+    @Test public void olderAndroidKeepsExactSignerChecksEvenWithAHistory() throws Exception {
+        org.robolectric.util.ReflectionHelpers.setStaticField(Build.VERSION.class, "SDK_INT", 32);
+        try {
+            sign(incoming, "dcba"); history(incoming, "abcd", "dcba"); rejected();
+            sign(incoming, "abcd"); installer.verify(file, release);
+        } finally { org.robolectric.util.ReflectionHelpers.setStaticField(Build.VERSION.class, "SDK_INT", 35); }
+    }
+    @Test public void sharedAncestorCannotAuthorizeASiblingKeyOrReturnToAnOldKey() throws Exception {
+        sign(installed(), "dcba"); history(installed(), "abcd", "dcba");
+        sign(incoming, "eeee"); history(incoming, "abcd", "eeee"); rejected();
+        sign(incoming, "abcd"); history(incoming, "abcd"); rejected();
+        history(incoming, "dcba", "abcd"); rejected();
+    }
+    @Test public void unprovenUnrelatedOrMalformedHistoriesNeverAuthorizeRotation() throws Exception {
+        sign(incoming, "dcba"); rejected();
+        history(incoming, "dcba"); rejected();
+        history(incoming, "eeee", "dcba"); rejected();
+        history(incoming, "abcd", "eeee"); rejected();
+        history(incoming, "abcd", "abcd", "dcba"); rejected();
+        Shadows.shadowOf(incoming.signingInfo).setPastSigningCertificates(new Signature[]{new Signature("abcd"), null, new Signature("dcba")}); rejected();
+    }
+    @Test public void multipleSignersRequireTheCompleteExactSetAndCannotRotate() throws Exception {
+        Signature[] pair = new Signature[]{new Signature("abcd"), new Signature("eeee")};
+        Shadows.shadowOf(installed().signingInfo).setSignatures(pair);
+        Shadows.shadowOf(incoming.signingInfo).setSignatures(new Signature[]{pair[1], pair[0]}); installer.verify(file, release);
+        sign(incoming, "abcd"); rejected();
+        history(incoming, "abcd", "eeee", "abcd"); rejected();
+    }
+    @Test public void emptyNullAndDuplicatedCurrentCertificatesFailClosed() throws Exception {
+        Shadows.shadowOf(incoming.signingInfo).setSignatures(new Signature[]{}); rejected();
+        Shadows.shadowOf(incoming.signingInfo).setSignatures(new Signature[]{null}); rejected();
+        Shadows.shadowOf(incoming.signingInfo).setSignatures(new Signature[]{new Signature("abcd"), new Signature("abcd")}); rejected();
+    }
 }

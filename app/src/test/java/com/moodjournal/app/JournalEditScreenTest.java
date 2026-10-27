@@ -46,7 +46,7 @@ public class JournalEditScreenTest {
             c.get().findViewById(R.id.checkin_tab).performClick();c.get().findViewById(R.id.journal_tab).performClick();JournalTest.unlockJournal(c.get());
             for(Object id:new Object[]{blank,empty.id()}) {
                 PopupMenu menu=openMenu(c.get(),id);
-                assertEquals(2,menu.getMenu().size());assertEquals("Edit",menu.getMenu().getItem(0).getTitle());
+                assertEquals(3,menu.getMenu().size());assertEquals("Edit",menu.getMenu().getItem(0).getTitle());
                 assertEquals(R.id.edit_action,menu.getMenu().getItem(0).getItemId());assertTrue(menu.getMenu().getItem(0).isEnabled());
                 assertEquals("Export",menu.getMenu().getItem(1).getTitle());assertFalse(menu.getMenu().getItem(1).isEnabled());menu.dismiss();
             }

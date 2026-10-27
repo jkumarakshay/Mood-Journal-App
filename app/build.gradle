@@ -19,6 +19,16 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+    buildTypes {
+        release {
+            debuggable false
+            jniDebuggable false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Signing is an explicit, separate step; never fall back to a debug key here.
+        }
+    }
     testOptions {
         unitTests.includeAndroidResources = true
         unitTests.all { maxHeapSize = '2g' }

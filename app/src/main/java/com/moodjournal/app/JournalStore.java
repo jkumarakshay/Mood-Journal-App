@@ -162,7 +162,29 @@ final class JournalStore extends SQLiteOpenHelper {
         return getWritableDatabase().update("entries", values, "id = ?", new String[]{Long.toString(id)}) == 1;
     }
 
-    void delete(long id) { getWritableDatabase().delete("entries", "id = ?", new String[]{Long.toString(id)}); }
+    boolean delete(long id) { return getWritableDatabase().delete("entries", "id = ?", new String[]{Long.toString(id)}) == 1; }
+
+    boolean heapHasEntries(String id) {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT 1 FROM entries WHERE heap_id = ? LIMIT 1", new String[]{id})) {
+            return c.moveToFirst();
+        }
+    }
+
+    enum HeapDeletion { DELETED, NOT_EMPTY, MISSING }
+
+    /** Check and delete under one write transaction; never cascade or detach journals. */
+    HeapDeletion deleteEmptyHeap(String id) {
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            HeapDeletion result;
+            if (heapHasEntries(id)) result = HeapDeletion.NOT_EMPTY;
+            else result = db.delete("heaps", "id = ? AND NOT EXISTS (SELECT 1 FROM entries WHERE heap_id = ?)",
+                    new String[]{id, id}) == 1 ? HeapDeletion.DELETED : HeapDeletion.MISSING;
+            db.setTransactionSuccessful();
+            return result;
+        } finally { db.endTransaction(); }
+    }
 
     List<BackupArchive.Entry> backupEntries() {
         List<BackupArchive.Entry> result = new ArrayList<>();

@@ -58,14 +58,14 @@ final class ExportController {
         zipPicker = activity.registerForActivityResult(new ActivityResultContracts.CreateDocument("application/zip"), this::saveSelected);
     }
 
-    ImageButton entryMenu(JournalStore.Entry entry, JournalHeap heap, Runnable edit) {
-        return options(R.string.journal_more, JournalExport.hasWriting(entry), edit, () ->
+    ImageButton entryMenu(JournalStore.Entry entry, JournalHeap heap, Runnable edit, Runnable delete) {
+        return options(R.string.journal_more, JournalExport.hasWriting(entry), edit, delete, () ->
                 choose(new Request(entry.id(), null, false), JournalExport.entryFilename(entry)));
     }
 
-    ImageButton heapMenu(JournalHeap heap, List<JournalStore.Entry> entries, Runnable edit) {
+    ImageButton heapMenu(JournalHeap heap, List<JournalStore.Entry> entries, Runnable edit, Runnable delete) {
         boolean available = entries.stream().anyMatch(e -> heap.id().equals(e.heapId()) && JournalExport.hasWriting(e));
-        return options(R.string.heap_more, available, edit, () -> showDialog.accept(AppDialogs.builder(activity)
+        return options(R.string.heap_more, available, edit, delete, () -> showDialog.accept(AppDialogs.builder(activity)
                 .setTitle(R.string.export_heap_title)
                 .setItems(new String[]{activity.getString(R.string.export_zip), activity.getString(R.string.export_collated)}, (dialog, which) -> {
                     if (!authorized.getAsBoolean()) return;
@@ -73,7 +73,7 @@ final class ExportController {
                 }).setNegativeButton(android.R.string.cancel, null).create()));
     }
 
-    private ImageButton options(int description, boolean available, Runnable edit, Runnable action) {
+    private ImageButton options(int description, boolean available, Runnable edit, Runnable delete, Runnable action) {
         ImageButton more = new ImageButton(activity); more.setId(R.id.export_more);
         more.setContentDescription(activity.getString(description)); more.setImageResource(R.drawable.ic_more_vert);
         more.setImageTintList(ColorStateList.valueOf(Appearance.color(activity, 0xFF705180)));
@@ -84,9 +84,11 @@ final class ExportController {
             PopupMenu popup = new PopupMenu(activity, more, Gravity.END); menu = popup;
             popup.getMenu().add(0, R.id.edit_action, 0, R.string.edit_action);
             popup.getMenu().add(0, R.id.export_action, 1, R.string.export_action).setEnabled(available && !busy && pending == null);
+            popup.getMenu().add(0, R.id.delete_action, 2, R.string.delete_action);
             popup.setOnMenuItemClickListener(item -> {
                 if (closed || menu != popup || !authorized.getAsBoolean()) return false;
                 if (item.getItemId() == R.id.edit_action) { popup.dismiss(); edit.run(); return true; }
+                if (item.getItemId() == R.id.delete_action) { popup.dismiss(); delete.run(); return true; }
                 if (item.getItemId() != R.id.export_action || !available || busy || pending != null) return false;
                 popup.dismiss(); action.run(); return true;
             });

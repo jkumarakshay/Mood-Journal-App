@@ -27,9 +27,17 @@ render.experimental.xml
 # Keystore files
 *.jks
 *.keystore
+*.p12
+*.pfx
+*.password
+signing-local.json
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json
 
 # Android Profiling
 *.hprof
+
+# Python helper caches
+__pycache__/
+*.py[cod]

@@ -82,7 +82,7 @@ final class JournalScreen {
             back.setOnClickListener(v -> { activeHeap = null; category = null; outsideOnly = false; refresh.run(); });
             add(page, back, 12);
             LinearLayout title = card(heap.color());
-            add(title, optionsRow(text(heap.name(), 24, true), exports.heapMenu(heap, entries, () -> editHeap(heap))), 0);
+            add(title, optionsRow(text(heap.name(), 24, true), exports.heapMenu(heap, entries, () -> editHeap(heap), () -> deleteHeap(heap))), 0);
             add(title, text(heap.category().isEmpty() ? "Uncategorized" : heap.category(), 14, false), 8);
             if (!heap.description().isEmpty()) add(title, text(heap.description(), 15, false), 12);
             customHeapText(title, heap.color());
@@ -125,7 +125,7 @@ final class JournalScreen {
                     folder.setOnClickListener(v -> { activeHeap = heap.id(); refresh.run(); });
                     LinearLayout folderCard = card(heap.color());
                     folderCard.setPadding(dp(8), dp(8), dp(8), dp(8));
-                    add(folderCard, optionsRow(folder, exports.heapMenu(heap, entries, () -> editHeap(heap))), 0);
+                    add(folderCard, optionsRow(folder, exports.heapMenu(heap, entries, () -> editHeap(heap), () -> deleteHeap(heap))), 0);
                     if (!heap.description().isEmpty()) {
                         TextView description = text(heap.description(), 14, false);
                         description.setMaxLines(2); description.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -150,7 +150,7 @@ final class JournalScreen {
             shown++;
             LinearLayout card = card(heap == null ? null : heap.color());
             card.setTag(entry.id());
-            add(card, optionsRow(text(heap == null ? "Outside Heaps" : "Heap: " + heap.name(), 14, true), exports.entryMenu(entry, heap, () -> editEntry(entry))), 0);
+            add(card, optionsRow(text(heap == null ? "Outside Heaps" : "Heap: " + heap.name(), 14, true), exports.entryMenu(entry, heap, () -> editEntry(entry), () -> deleteEntry(entry))), 0);
             add(card, text(new SimpleDateFormat("MMM d, yyyy  ·  h:mm a", Locale.getDefault()).format(new Date(entry.createdAt())), 12, false), 8);
             add(card, text(MOODS[entry.mood()], 21, true), 12);
             String excerpt = !entry.event().isEmpty() ? entry.event() : !entry.thoughts().isEmpty() ? entry.thoughts() : entry.needs();
@@ -211,6 +211,66 @@ final class JournalScreen {
             if (current == null) { Toast.makeText(activity, R.string.edit_heap_missing, Toast.LENGTH_LONG).show(); refresh.run(); return; }
             heapForm(current, heap -> refresh.run(), () -> {});
         } catch (android.database.SQLException e) { Toast.makeText(activity, R.string.edit_heap_failed, Toast.LENGTH_LONG).show(); }
+    }
+
+    void deleteEntry(JournalStore.Entry original) { deleteEntry(original, () -> {}); }
+
+    void deleteEntry(JournalStore.Entry original, Runnable kept) {
+        if (!authorized.getAsBoolean()) return;
+        try {
+            if (store.entry(original.id()) == null) {
+                Toast.makeText(activity, R.string.edit_entry_missing, Toast.LENGTH_LONG).show(); refresh.run(); return;
+            }
+        } catch (android.database.SQLException e) {
+            Toast.makeText(activity, R.string.delete_entry_failed, Toast.LENGTH_LONG).show(); return;
+        }
+        AlertDialog dialog = AppDialogs.builder(activity).setTitle(R.string.delete_entry_title)
+                .setMessage(R.string.delete_entry_message)
+                .setNegativeButton(R.string.delete_keep_entry, (d, w) -> {
+                    if (((AlertDialog) d).isShowing() && authorized.getAsBoolean()) kept.run();
+                }).setPositiveButton(R.string.delete_entry_confirm, null).create();
+        showDialog.accept(dialog);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            if (!dialog.isShowing() || !authorized.getAsBoolean()) { dialog.dismiss(); return; }
+            try {
+                boolean deleted = store.delete(original.id());
+                dialog.dismiss();
+                if (!deleted) Toast.makeText(activity, R.string.edit_entry_missing, Toast.LENGTH_LONG).show();
+                refresh.run();
+            } catch (android.database.SQLException e) { dialog.setMessage(activity.getString(R.string.delete_entry_failed)); }
+        });
+    }
+
+    private void deleteHeap(JournalHeap original) {
+        if (!authorized.getAsBoolean()) return;
+        JournalHeap current;
+        try {
+            current = store.heap(original.id());
+            if (current == null) { Toast.makeText(activity, R.string.edit_heap_missing, Toast.LENGTH_LONG).show(); refresh.run(); return; }
+            if (store.heapHasEntries(current.id())) { explainNonemptyHeap(); return; }
+        } catch (android.database.SQLException e) {
+            Toast.makeText(activity, R.string.delete_heap_failed, Toast.LENGTH_LONG).show(); return;
+        }
+        AlertDialog dialog = AppDialogs.builder(activity).setTitle(R.string.delete_heap_title)
+                .setMessage(activity.getString(R.string.delete_heap_message, current.name()))
+                .setNegativeButton(R.string.delete_keep_heap, null).setPositiveButton(R.string.delete_heap_confirm, null).create();
+        showDialog.accept(dialog);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            if (!dialog.isShowing() || !authorized.getAsBoolean()) { dialog.dismiss(); return; }
+            try {
+                JournalStore.HeapDeletion result = store.deleteEmptyHeap(current.id());
+                dialog.dismiss();
+                if (result == JournalStore.HeapDeletion.NOT_EMPTY) { explainNonemptyHeap(); return; }
+                if (current.id().equals(activeHeap)) activeHeap = null;
+                if (result == JournalStore.HeapDeletion.MISSING) Toast.makeText(activity, R.string.edit_heap_missing, Toast.LENGTH_LONG).show();
+                refresh.run();
+            } catch (android.database.SQLException e) { dialog.setMessage(activity.getString(R.string.delete_heap_failed)); }
+        });
+    }
+
+    private void explainNonemptyHeap() {
+        showDialog.accept(AppDialogs.builder(activity).setTitle(R.string.delete_heap_not_empty_title)
+                .setMessage(R.string.delete_heap_not_empty_message).setPositiveButton(android.R.string.ok, null).create());
     }
 
     private void heapForm(JournalHeap existing, Consumer<JournalHeap> saved, Runnable cancelled) {

@@ -137,4 +137,5 @@
     <item name="journal_entry_thoughts" type="id" />
     <item name="journal_entry_needs" type="id" />
     <item name="entry_heap" type="id" />
+    <item name="delete_action" type="id" />
 </resources>

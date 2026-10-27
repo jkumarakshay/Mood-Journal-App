@@ -602,7 +602,7 @@ public final class MainActivity extends FragmentActivity {
         content.setPadding(dp(24), dp(12), dp(24), dp(12));
         JournalHeap heap = store.heaps().stream().filter(h -> h.id().equals(entry.heapId())).findFirst().orElse(null);
         add(content, journals.optionsRow(text(new SimpleDateFormat("MMMM d, yyyy · h:mm a", Locale.getDefault()).format(new Date(entry.createdAt())), 13, MUTED, false),
-                exports.entryMenu(entry, heap, () -> journals.editEntry(entry))), 0);
+                exports.entryMenu(entry, heap, () -> journals.editEntry(entry), () -> journals.deleteEntry(entry, () -> showEntry(entry)))), 0);
         detail(content, "What was on your mind", entry.event());
         detail(content, "Thoughts & feelings", entry.thoughts());
         detail(content, "What you needed", entry.needs());
@@ -618,16 +618,8 @@ public final class MainActivity extends FragmentActivity {
         showPrivateDialog(AppDialogs.builder(this).setTitle(FACES[entry.mood() - 1] + "  Feeling " + MOODS[entry.mood() - 1].toLowerCase(Locale.ROOT))
                 .setView(scroll).setPositiveButton("Close", null)
                 .setNegativeButton("Move to Heap", (d, w) -> journals.moveEntry(entry))
-                .setNeutralButton("Delete", (d, w) -> {
-                    if (!journalUnlocked || currentTab != JOURNAL) return;
-                    showPrivateDialog(AppDialogs.builder(this)
-                        .setTitle("Delete this entry?").setMessage("This removes the entry permanently from your device.")
-                        .setNegativeButton("Keep entry", (dialog, which) -> showEntry(entry))
-                        .setPositiveButton("Delete entry", (dialog, which) -> {
-                            if (!journalUnlocked || currentTab != JOURNAL) return;
-                            try { store.delete(entry.id()); showJournal(); }
-                            catch (android.database.SQLException e) { Toast.makeText(this, "Couldn’t delete this entry. Please try again.", Toast.LENGTH_LONG).show(); }
-                        }));
+                .setNeutralButton(R.string.delete_action, (d, w) -> {
+                    if (((AlertDialog) d).isShowing()) journals.deleteEntry(entry, () -> showEntry(entry));
                 }));
     }
 

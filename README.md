@@ -15,9 +15,10 @@ Private steps use clearly marked, empty previews without opening saved entries, 
 - Journal freely with optional prompts about what happened, what you felt, and what you need next.
 - Save a mood without writing when that is all you have energy for.
 - Return to an unfinished draft after leaving the app.
-- Browse your entries, read a full reflection, and permanently delete an entry after confirmation.
+- Browse your entries, read a full reflection, and use **Edit**, **Export**, or **Delete** in the three-dot menu. Deleting an entry always requires confirmation.
 - Organize journals in named Heaps with optional categories and color profiles, or keep entries outside all Heaps.
 - Use the **+** menu in My Journal to create a journal or Heap; filter journals across Heaps by category.
+- Delete an empty Heap from its three-dot menu after confirmation. Heaps containing any journals, including mood-only entries, require moving or deleting those journals first.
 - See today’s weather high/low and description at the top left of Check in; choose Celsius or Fahrenheit in Settings → Weather.
 - Discover private, on-device weather, journal-theme and calendar associations after 30 distinct journaling days; reports are reviewed weekly.
 - Open Settings from the top-right gear for About, a saved Light or Dark theme, the daily notification time, Weather, and Updates.
@@ -182,7 +183,7 @@ Transfer the APK to an Android phone, open it, and allow installation from the a
 adb install -r app/build/outputs/apk/debug/Daily-Pause-v1.11.0.apk
 ```
 
-This is a debug-signed APK for personal testing. Store distribution requires a release build and a securely managed release signing key. Keep the same signing key for future updates; Android cannot update an installation with an APK signed by a different key.
+This is a debug-signed APK for personal testing. For optimized, non-debug releases, production signing, Firebase certificate registration and migration from existing installations, see [Release signing and migration](docs/release-signing.md). Release signing is explicit and has no automatic debug-key fallback.
 
 ## Cloud environment
 

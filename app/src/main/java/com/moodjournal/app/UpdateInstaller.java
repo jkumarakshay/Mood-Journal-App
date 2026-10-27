@@ -50,8 +50,7 @@ final class UpdateInstaller {
                     || version(archive) != release.versionCode() || !release.versionName().equals(archive.versionName)
                     || archive.applicationInfo == null || archive.applicationInfo.minSdkVersion != release.minSdk())
                 throw new IOException("APK metadata mismatch");
-            Set<String> current = signers(installed), incoming = signers(archive);
-            if (current.isEmpty() || !current.equals(incoming)) throw new IOException("APK signing certificate mismatch");
+            if (!trustedSuccessor(installed, archive)) throw new IOException("APK signing certificate mismatch");
         } catch (NoSuchAlgorithmException | PackageManager.NameNotFoundException e) { throw new IOException("Cannot verify APK", e); }
     }
     boolean canInstall() { return context.getPackageManager().canRequestPackageInstalls(); }
@@ -64,12 +63,41 @@ final class UpdateInstaller {
         return intent;
     }
     private static long version(PackageInfo info) { return Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode; }
+
+    /** Accept exact signers, or a forward rotation proven by Android's APK signature parser.
+     * Never trust a certificate list from the update manifest, an overlapping root, or an old key.
+     * Rotation starts at API 33 to match the release APK's v3.1 rotation policy. */
+    static boolean trustedSuccessor(PackageInfo installed, PackageInfo archive) {
+        Set<String> current = signers(installed), incoming = signers(archive);
+        if (current.isEmpty() || incoming.isEmpty()) return false;
+        if (current.equals(incoming)) return true;
+        if (Build.VERSION.SDK_INT < 33 || current.size() != 1 || incoming.size() != 1
+                || installed.signingInfo == null || archive.signingInfo == null
+                || installed.signingInfo.hasMultipleSigners() || archive.signingInfo.hasMultipleSigners()
+                || !archive.signingInfo.hasPastSigningCertificates()) return false;
+        Signature[] history = archive.signingInfo.getSigningCertificateHistory();
+        if (history == null || history.length < 2) return false;
+        Set<String> seen = new HashSet<>();
+        for (Signature certificate : history) {
+            if (certificate == null || !seen.add(certificate.toCharsString())) return false;
+        }
+        String next = incoming.iterator().next();
+        if (!next.equals(history[history.length - 1].toCharsString()) || !seen.contains(current.iterator().next())) return false;
+        // A previously used certificate cannot become the current signer again.
+        Signature[] past = installed.signingInfo.getSigningCertificateHistory();
+        if (past != null) for (Signature certificate : past)
+            if (certificate == null || next.equals(certificate.toCharsString())) return false;
+        return true;
+    }
+
     @SuppressWarnings("deprecation") private static Set<String> signers(PackageInfo info) {
         Signature[] signatures;
         if (Build.VERSION.SDK_INT >= 28) signatures = info.signingInfo == null ? null : info.signingInfo.getApkContentsSigners();
         else signatures = info.signatures;
         Set<String> result = new HashSet<>();
-        if (signatures != null) for (Signature signature : signatures) result.add(signature.toCharsString());
+        if (signatures != null) for (Signature signature : signatures) {
+            if (signature == null || !result.add(signature.toCharsString())) return Set.of();
+        }
         return result;
     }
     static String hex(byte[] bytes) {

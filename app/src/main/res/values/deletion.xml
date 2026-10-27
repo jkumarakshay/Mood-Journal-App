@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="delete_action">Delete</string>
+    <string name="delete_entry_title">Delete this entry?</string>
+    <string name="delete_entry_message">This permanently removes the entry from your device. This cannot be undone.</string>
+    <string name="delete_keep_entry">Keep entry</string>
+    <string name="delete_entry_confirm">Delete entry</string>
+    <string name="delete_entry_failed">Couldn’t delete this entry. Please try again.</string>
+    <string name="delete_heap_title">Delete this Heap?</string>
+    <string name="delete_heap_message">Permanently delete the empty Heap “%1$s”? This cannot be undone.</string>
+    <string name="delete_keep_heap">Keep Heap</string>
+    <string name="delete_heap_confirm">Delete Heap</string>
+    <string name="delete_heap_failed">Couldn’t delete this Heap. Please try again.</string>
+    <string name="delete_heap_not_empty_title">This Heap still has journals</string>
+    <string name="delete_heap_not_empty_message">Move or delete all journals in this Heap first, then try deleting the Heap again. To move a journal, choose Edit and change Save in, or open it and choose Move to Heap.</string>
+</resources>
