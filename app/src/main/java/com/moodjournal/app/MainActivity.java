@@ -59,6 +59,8 @@ public final class MainActivity extends FragmentActivity {
     private boolean journalUnlocked;
     private boolean backupUnlocked;
     private JournalGate gate;
+    private GoogleAccountStore googleAccount;
+    private GoogleAccountScreen accounts;
     private AlertDialog privateDialog;
     private HistoryScreen history;
     private BackupController backup;
@@ -86,6 +88,8 @@ public final class MainActivity extends FragmentActivity {
         draft = getSharedPreferences("draft", MODE_PRIVATE);
         gate = new JournalGate(this, new PinLock(this), JournalGate.systemBiometrics(this), () -> {
             if (!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
+            if (accounts.awaitingLocalLink()) { accounts.completeLink(); return; }
+            if (accounts.blocking()) return;
             if (settingsPage == SettingsScreen.BACKUP) {
                 backupUnlocked = true;
                 hideKeyboard(); showSettings(); return;
@@ -95,6 +99,9 @@ public final class MainActivity extends FragmentActivity {
             hideKeyboard();
             showPrivateTab();
         });
+        googleAccount = new GoogleAccountStore(this);
+        accounts = new GoogleAccountScreen(this, googleAccount, new GoogleSignIn(this), gate::show, this::resumeAfterAccount);
+        gate.setPinRecovery(googleAccount::linked, this::resetPinWithGoogle);
         history = new HistoryScreen(this, store, state, this::showHistory, this::showPrivateDialog,
                 () -> settingsPage == SettingsScreen.NONE && currentTab == HISTORY && analyticsMode == 0 && journalUnlocked);
         analysis = new AnalysisScreen(this, () -> settingsPage == SettingsScreen.NONE && currentTab == HISTORY && analyticsMode == 1 && journalUnlocked, this::showHistory);
@@ -140,6 +147,13 @@ public final class MainActivity extends FragmentActivity {
                 if (!onboarding.active()) { setEnabled(false); getOnBackPressedDispatcher().onBackPressed(); }
             }
         });
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() {
+                if (accounts.blocking()) accounts.back();
+                else { setEnabled(false); getOnBackPressedDispatcher().onBackPressed(); setEnabled(true); }
+            }
+        });
+        if (accounts.blocking()) { currentTab = restoredTab; accounts.render(); return; }
         if (onboarding.active()) { showOnboarding(); return; }
         currentTab = restoredTab;
         if (settingsPage != SettingsScreen.NONE) showSettings();
@@ -214,6 +228,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void openTab(int tab) {
+        if (accounts.blocking()) return;
         if (onboarding.active()) return;
         if (currentTab == tab && settingsPage == SettingsScreen.NONE) return;
         saveDraft();
@@ -240,6 +255,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void openSettings(int target) {
+        if (accounts.blocking()) return;
         if (onboarding.active()) return;
         saveDraft();
         dismissAnalyticsMenu(); analysis.onLeave();
@@ -258,6 +274,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void showSettings() {
+        if (accounts.blocking()) { accounts.render(); return; }
         frame(currentTab);
         settings.show(page, settingsPage);
         if (settingsPage == SettingsScreen.BACKUP) {
@@ -281,6 +298,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void showHistory() {
+        if (accounts.blocking()) { accounts.render(); return; }
         frame(HISTORY);
         if (!journalUnlocked) gate.show(page);
         else {
@@ -292,6 +310,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void showAnalyticsMenu(View anchor) {
+        if (accounts.blocking()) return;
         if (onboarding.active()) return;
         if (!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
         dismissAnalyticsMenu();
@@ -320,6 +339,7 @@ public final class MainActivity extends FragmentActivity {
     private void dismissAnalyticsMenu() { if (analyticsMenu != null) { analyticsMenu.dismiss(); analyticsMenu = null; } }
 
     private void showCheckIn() {
+        if (accounts.blocking()) { accounts.render(); return; }
         journalUnlocked = false;
         backupUnlocked = false;
         gate.lock();
@@ -537,6 +557,7 @@ public final class MainActivity extends FragmentActivity {
     }
 
     private void showJournal() {
+        if (accounts.blocking()) { accounts.render(); return; }
         frame(JOURNAL);
         if (!journalUnlocked) {
             gate.show(page);
@@ -614,6 +635,23 @@ public final class MainActivity extends FragmentActivity {
         showPrivateDialog(builder.create());
     }
 
+    private void resetPinWithGoogle() {
+        if (accounts.blocking() || !googleAccount.linked()) return;
+        gate.lock(); journalUnlocked = false; backupUnlocked = false;
+        backup.onPause(); exports.onPause(); updates.onLeave();
+        cancelPendingMoment(); hideKeyboard(); accounts.startRecovery();
+    }
+
+    private void resumeAfterAccount() {
+        journalUnlocked = false; backupUnlocked = false; gate.lock();
+        if (onboarding.active()) showOnboarding();
+        else {
+            if (settingsPage != SettingsScreen.NONE) showSettings();
+            else if (currentTab == CHECK_IN) showCheckIn(); else showPrivateTab();
+            reminders.onResume(); weather.onResume(); updates.onResume();
+        }
+    }
+
     private void showPrivateDialog(AlertDialog dialog) {
         if (privateDialog != null && privateDialog != dialog) privateDialog.dismiss();
         privateDialog = dialog;
@@ -653,6 +691,7 @@ public final class MainActivity extends FragmentActivity {
             privateDialog.dismiss();
             privateDialog = null;
         }
+        if (accounts.blocking()) { accounts.pause(); super.onPause(); return; }
         if (!onboarding.active()) {
             if (settingsPage == SettingsScreen.BACKUP) showSettings();
             else if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN) showPrivateTab();
@@ -661,6 +700,7 @@ public final class MainActivity extends FragmentActivity {
     }
     @Override protected void onResume() {
         super.onResume();
+        if (accounts.blocking()) { accounts.resume(); return; }
         if (onboarding.active()) return;
         if (settingsPage == SettingsScreen.BACKUP && !backupUnlocked) showSettings();
         else if (settingsPage == SettingsScreen.NONE && currentTab != CHECK_IN && !journalUnlocked) showPrivateTab();
@@ -672,6 +712,7 @@ public final class MainActivity extends FragmentActivity {
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        if (accounts.blocking()) { intent.setAction(null); return; }
         if (!ReminderScheduler.OPEN_CHECK_IN.equals(intent.getAction())) return;
         saveDraft(); cancelPendingMoment(); hideKeyboard();
         dismissAnalyticsMenu(); analysis.onLeave();
@@ -696,9 +737,10 @@ public final class MainActivity extends FragmentActivity {
         exports.saveState(state);
         super.onSaveInstanceState(state);
     }
-    @Override protected void onDestroy() { gate.close(); backup.close(); exports.close(); weather.close(); updates.close(); analysis.close(); store.close(); super.onDestroy(); }
+    @Override protected void onDestroy() { accounts.close(); gate.close(); backup.close(); exports.close(); weather.close(); updates.close(); analysis.close(); store.close(); super.onDestroy(); }
 
     private void showOnboarding() {
+        if (accounts.blocking()) { accounts.render(); return; }
         settingsPage = SettingsScreen.NONE;
         journalUnlocked = false;
         backupUnlocked = false;

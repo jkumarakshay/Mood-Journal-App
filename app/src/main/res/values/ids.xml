@@ -1,4 +1,11 @@
 <resources>
+    <item name="account_screen" type="id" />
+    <item name="account_title" type="id" />
+    <item name="account_status" type="id" />
+    <item name="account_back" type="id" />
+    <item name="google_sign_in" type="id" />
+    <item name="pin_reset" type="id" />
+    <item name="pin_reset_save" type="id" />
     <item name="settings_backup" type="id" />
     <item name="edit_action" type="id" />
     <item name="edit_save_changes" type="id" />

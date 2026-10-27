@@ -23,6 +23,31 @@ final class PinLock {
 
     boolean biometricChoiceMade() { return prefs.contains("biometric_primary"); }
 
+    boolean hasFailedAttempt() { return prefs.getInt("failures", 0) > 0; }
+    String verifierIdentity() { return prefs.getString("salt", "") + ":" + prefs.getString("hash", ""); }
+    static final class PreparedReset implements AutoCloseable {
+        private final String oldSalt, oldHash;
+        private final byte[] salt, hash;
+        private boolean consumed;
+        private PreparedReset(String oldSalt, String oldHash, byte[] salt, byte[] hash) { this.oldSalt = oldSalt; this.oldHash = oldHash; this.salt = salt; this.hash = hash; }
+        public void close() { consumed = true; Arrays.fill(salt, (byte) 0); Arrays.fill(hash, (byte) 0); }
+    }
+    synchronized PreparedReset prepareReset(char[] pin, String verifiedIdentity) throws GeneralSecurityException {
+        String saltBefore = prefs.getString("salt", ""), hashBefore = prefs.getString("hash", "");
+        if (!hasPin() || !validFormat(pin) || !(saltBefore + ":" + hashBefore).equals(verifiedIdentity)) throw new GeneralSecurityException("Authenticate again");
+        byte[] salt = new byte[16]; new SecureRandom().nextBytes(salt);
+        return new PreparedReset(saltBefore, hashBefore, salt, derive(pin, salt));
+    }
+    synchronized void commitReset(PreparedReset reset) throws GeneralSecurityException {
+        try {
+            if (reset.consumed || !hasPin() || !reset.oldSalt.equals(prefs.getString("salt", "")) || !reset.oldHash.equals(prefs.getString("hash", "")))
+                throw new GeneralSecurityException("The lock changed; authenticate again");
+            if (!prefs.edit().putString("salt", Base64.encodeToString(reset.salt, Base64.NO_WRAP))
+                    .putString("hash", Base64.encodeToString(reset.hash, Base64.NO_WRAP)).remove("failures").remove("retry_after").commit())
+                throw new GeneralSecurityException("Could not save PIN");
+        } finally { reset.close(); }
+    }
+
     synchronized void setBiometricPrimary(boolean enabled) throws GeneralSecurityException {
         if (!hasPin()) throw new GeneralSecurityException("Set a backup PIN first");
         if (!prefs.edit().putBoolean("biometric_primary", enabled).commit())

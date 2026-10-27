@@ -78,10 +78,13 @@ final class JournalGate {
     private TextView status;
     private Button biometricButton;
     private AlertDialog dialog;
+    private java.util.function.BooleanSupplier recoveryAllowed = () -> false;
+    private Runnable recoverPin;
 
     JournalGate(FragmentActivity activity, PinLock pinLock, Biometrics biometrics, Runnable unlocked) {
         this.activity = activity; this.pinLock = pinLock; this.biometrics = biometrics; this.unlocked = unlocked;
     }
+    void setPinRecovery(java.util.function.BooleanSupplier allowed, Runnable recover) { recoveryAllowed = allowed; recoverPin = recover; }
 
     void show(LinearLayout page) {
         lock();
@@ -120,6 +123,7 @@ final class JournalGate {
             Button fallback = button(R.string.auth_use_pin, R.id.unlock_use_pin, false, android.R.drawable.ic_lock_lock);
             fallback.setOnClickListener(v -> { if (active(current)) showPinDialog(current, false, false); }); add(content, fallback, 12);
         }
+        addRecovery(content, current);
         add(content, status, 12);
         if ((setup || primary) && !biometrics.available()) add(content, label(activity.getString(R.string.auth_biometric_setup_needed), 13, false), 8);
         if (primary && automatic && biometrics.available()) {
@@ -143,6 +147,7 @@ final class JournalGate {
         if (setup) add(form, label(activity.getString(R.string.auth_remember_pin), 13, false), 12);
         TextView feedback = label("", 14, false); feedback.setId(R.id.pin_dialog_status);
         feedback.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE); add(form, feedback, 10);
+        if (!setup) addRecovery(form, current);
         EditText input = pin, confirmation = confirm;
         AlertDialog popup = AppDialogs.builder(activity).setTitle(setup ? R.string.auth_set_pin_title : R.string.auth_enter_pin_title)
                 .setView(form).setNegativeButton(R.string.auth_cancel, null)
@@ -198,9 +203,15 @@ final class JournalGate {
                 } else if (setup && pinLock.hasPin()) {
                     if (popup != null) popup.dismiss();
                     render(current, false); status.setText(R.string.auth_pin_saved_elsewhere);
-                } else feedback.setText(result);
+                } else { feedback.setText(result); if (!setup) addRecovery((LinearLayout) feedback.getParent(), current); }
             });
         });
+    }
+    private void addRecovery(LinearLayout parent, int current) {
+        if (recoverPin == null || !recoveryAllowed.getAsBoolean() || !pinLock.hasFailedAttempt() || parent.findViewById(R.id.pin_reset) != null) return;
+        Button reset = button(R.string.google_reset_pin, R.id.pin_reset, false, android.R.drawable.ic_menu_revert);
+        reset.setOnClickListener(v -> { if (active(current) && !pinBusy && recoveryAllowed.getAsBoolean() && pinLock.hasFailedAttempt()) recoverPin.run(); });
+        add(parent, reset, 12);
     }
     private void acceptedPin(int current) {
         if (!active(current)) return;

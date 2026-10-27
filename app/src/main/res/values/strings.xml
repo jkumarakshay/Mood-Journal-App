@@ -1,4 +1,24 @@
 <resources>
+    <string name="google_welcome">A little space,\njust for you.</string>
+    <string name="google_welcome_description">Sign in with Google to get started with Daily Pause. Your linked account helps you recover a forgotten PIN. Your journal stays on this device.</string>
+    <string name="google_sign_in">Sign in with Google</string>
+    <string name="google_link_existing">Your Google account has been verified. Unlock your existing PIN or biometrics to link it to the journals already on this device.</string>
+    <string name="google_recover_title">Let’s get you back in.</string>
+    <string name="google_recover_description">Sign in with the same Google account you linked to Daily Pause. Once verified, you can choose a new PIN.</string>
+    <string name="google_reset_pin">Reset PIN</string>
+    <string name="google_not_configured">Google sign-in needs app configuration before it can be used. Your existing journals have not been removed.</string>
+    <string name="google_checking">Verifying your Google account…</string>
+    <string name="google_failed">Sign-in was cancelled or couldn’t be verified. Check your connection and try again.</string>
+    <string name="google_wrong_account">That isn’t the Google account linked to this journal, or the lock has changed. Use the original account to continue.</string>
+    <string name="google_expired">Verification expired. Sign in with Google again to continue.</string>
+    <string name="google_link_failed">Couldn’t link this account. This device may already have a different linked account. Your journal has not been changed.</string>
+    <string name="google_local_privacy">Google and Firebase verify your account. Your journal text, moods and Heaps stay here unless you choose to export or back them up.</string>
+    <string name="google_back">Back</string>
+    <string name="google_new_pin_title">Choose a new PIN</string>
+    <string name="google_new_pin_description">Google account verified. Choose and confirm a new six-digit PIN. Your journals, Heaps and encrypted backup passphrase stay unchanged.</string>
+    <string name="google_save_pin">Save new PIN</string>
+    <string name="google_reset_failed">Couldn’t change the PIN. Sign in with Google again and try once more.</string>
+    <string name="google_pin_saved">PIN updated. Use your new PIN or biometrics to sign in.</string>
     <string name="settings_backup">Backup/Restore</string>
     <string name="settings_backup_summary">Keep an encrypted backup, or restore journals and Heaps.</string>
     <string name="settings_backup_description">Back up or restore your saved journals and Heaps using Google Drive or another file provider. Your backup passphrase is separate from your journal PIN.</string>
@@ -136,7 +156,7 @@
     <string name="settings_about_summary">A quiet place to check in, reflect, and begin again.</string>
     <string name="settings_about_overview">Daily Pause is a private space to check in with your mood, reflect on what’s on your mind, and make room for yourself.</string>
     <string name="settings_about_features">Write freely, organize journals into Heaps, and look back at your Analytics to explore your Mood Graph and private weekly patterns.</string>
-    <string name="settings_about_privacy">Your saved journals stay on this device unless you export or choose an encrypted backup. My Journal and Analytics are protected by your PIN or enrolled biometrics. Weather sends your chosen city or rounded coordinates to Open-Meteo; your journal text, moods, and answers are never sent with weather requests.</string>
+    <string name="settings_about_privacy">Your saved journals stay on this device unless you export or choose an encrypted backup. Google and Firebase verify your account during setup and PIN recovery, without receiving journal content. My Journal and Analytics are protected by your PIN or enrolled biometrics. Weather sends your chosen city or rounded coordinates to Open-Meteo; your journal text, moods, and answers are never sent with weather requests.</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_description">Choose the appearance that feels comfortable for you.</string>
     <string name="settings_theme_saved">Your choice is remembered the next time you open Daily Pause.</string>
@@ -262,7 +282,7 @@ a little peace.</string>
     <string name="auth_enter_pin_title">Enter your PIN</string>
     <string name="auth_create_pin_description">Choose six digits, then enter them again to confirm.</string>
     <string name="auth_backup_first">First, create a backup PIN. Then choose whether biometrics should be your primary way to sign in.</string>
-    <string name="auth_remember_pin">Keep this PIN somewhere safe. Daily Pause cannot recover it.</string>
+    <string name="auth_remember_pin">Keep this PIN somewhere safe. Your linked Google account can verify your identity if you need to reset it.</string>
     <string name="auth_biometric_setup_needed">Biometrics need an enrolled fingerprint or another supported strong biometric in Android settings. Your PIN works without biometrics.</string>
     <string name="auth_securing_pin">Securing your PIN…</string>
     <string name="auth_checking_pin">Checking PIN…</string>

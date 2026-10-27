@@ -30,6 +30,7 @@ public class TourLayoutTest {
         RuntimeEnvironment.setQualifiers("w" + width + "dp-h" + height + "dp-" + (width > height ? "land" : "port") + "-mdpi");
         RuntimeEnvironment.setFontScale(scale);
         Context context = RuntimeEnvironment.getApplication();
+        ReturningUserApplication.linkTestAccount(context);
         context.getSharedPreferences(UpdateController.PREFS, 0).edit().putBoolean("automatic", false).commit();
         for (boolean dark : new boolean[]{false, true}) {
             context.getSharedPreferences(OnboardingState.PREFS, 0).edit().putInt("step", -1).commit();

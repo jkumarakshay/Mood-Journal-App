@@ -1,0 +1,6 @@
+<resources>
+    <!-- Public client configuration only. See docs/google-sign-in-setup.md. -->
+    <string name="firebase_project_id" translatable="false">daily-pause-a0aa2</string>
+    <string name="firebase_web_api_key" translatable="false">AIzaSyClB4f9cY2D3ypxJgyz6nBBdu59sOoHwqE</string>
+    <string name="google_web_client_id" translatable="false">171948921868-7qdqre1p6bms6172ltk4foc79gnf8j4t.apps.googleusercontent.com</string>
+</resources>
